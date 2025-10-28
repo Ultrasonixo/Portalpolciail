@@ -1,0 +1,109 @@
+/*
+  Esta é a regra mais importante para o nosso layout.
+  O componente MainLayout.jsx renderiza uma tag <main> que envolve todo o conteúdo da página.
+  Esta regra adiciona um espaçamento no topo do <main>, com a altura exata do nosso header,
+  empurrando todo o conteúdo da página para baixo.
+  Isso garante que nada fique escondido atrás do header.
+*/
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Garante que o conteúdo principal ocupe o espaço disponível,
+   empurrando o rodapé para baixo em páginas com pouco conteúdo. */
+.site-content {
+  flex-grow: 1;
+}
+
+/* Estilos para os marcadores de crime personalizados */
+.crime-marker-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+}
+
+/* Estilos para o painel de filtros */
+.filter-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 10px 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 90%;
+  max-height: 150px; /* Altura máxima para o painel */
+  overflow-y: auto; /* Adiciona barra de rolagem quando necessário */
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 20px;
+  transition: background-color 0.2s;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+}
+
+.filter-item[data-visible="false"] {
+  background-color: #fff;
+  opacity: 0.7;
+}
+
+.filter-item:hover {
+  background-color: #e0e0e0;
+}
+
+.filter-item input[type="checkbox"] {
+  display: none; /* Esconde o checkbox padrão */
+}
+
+.filter-item label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.9rem;
+}
+
+.color-box {
+  height: 15px;
+  width: 15px;
+  border-radius: 50%;
+  margin-right: 8px;
+  border: 1px solid #777;
+  display: inline-block;
+}
+
+/* Overlays para loading e erro */
+.loading-overlay, .error-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px 30px;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.error-overlay {
+    color: #d93025;
+    font-weight: bold;
+}

@@ -1,0 +1,170 @@
+/* --- FUNDO DA PÁGINA --- */
+/* Adiciona um fundo suave para destacar os widgets brancos */
+.reports-page {
+    background-color: #f9fafb; /* Um cinza muito claro */
+}
+
+/* --- ESTILOS DOS CARDS DE RESUMO (Polidos) --- */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.summary-card {
+    display: flex;
+    align-items: center;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease-in-out;
+}
+
+.summary-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -4px rgba(0, 0, 0, 0.07);
+    transform: translateY(-2px);
+}
+
+/* Card desabilitado (quando o valor é N/A) */
+.summary-card.disabled {
+    opacity: 0.7;
+    background-color: #f8fafc;
+}
+
+.summary-card.disabled .summary-value {
+    color: #94a3b8; /* Cinza */
+}
+
+.summary-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-right: 16px;
+    font-size: 20px;
+}
+
+.summary-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0; 
+}
+
+.summary-title {
+    font-size: 0.875rem; /* 14px */
+    color: #64748b; 
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.summary-value {
+    font-size: 1.25rem; /* 20px */
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.summary-change {
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+/* --- Lógica de Cores --- */
+
+/* Aumento (Vermelho) */
+.summary-card.increase .summary-icon { background-color: #fef2f2; color: #ef4444; }
+.summary-card.increase .summary-change { color: #ef4444; }
+
+/* Queda (Verde) */
+.summary-card.decrease .summary-icon { background-color: #f0fdf4; color: #22c55e; }
+.summary-card.decrease .summary-change { color: #22c55e; }
+
+/* Neutro (Cinza) */
+.summary-card.neutral .summary-icon { background-color: #f8fafc; color: #64748b; }
+.summary-card.neutral .summary-change { color: #64748b; }
+
+/* Info (Azul) - Para "Mais Frequente" */
+.summary-card.info .summary-icon { background-color: #eff6ff; color: #3b82f6; }
+.summary-card.info .summary-change { color: #3b82f6; }
+
+
+/* --- CSS DO GRÁFICO (Polido) --- */
+.grafico-container {
+    width: 100%;
+    height: 450px; 
+    margin-top: 20px;
+}
+
+/* Tooltip Personalizado */
+.custom-tooltip {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.tooltip-label {
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+/* --- SPINNER DE CARREGAMENTO --- */
+.loading-spinner-overlay {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    width: 100%;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3; /* Cinza claro */
+    border-top: 5px solid #3b82f6; /* Azul */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* --- ESTADO DE "NENHUM DADO" --- */
+.widget.empty-state-widget {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 30px;
+    text-align: center;
+    background-color: #fff;
+    border-radius: 12px;
+}
+.empty-state-icon {
+    font-size: 3rem;
+    color: #cbd5e1; /* Cinza */
+    margin-bottom: 20px;
+}
+.empty-state-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #334155;
+    margin: 0 0 10px 0;
+}
+.empty-state-text {
+    font-size: 1rem;
+    color: #64748b;
+    margin: 0;
+}

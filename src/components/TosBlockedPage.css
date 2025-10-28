@@ -1,0 +1,135 @@
+/* src/components/TosBlockedPage.css (COM ANIMAÇÕES) */
+
+/* --- KEYFRAMES (Definições da Animação) --- */
+
+/* Animação para o fundo (aparecer suavemente) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Animação para o cartão (deslizar de baixo para cima) */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 50px, 0); /* Começa 50px abaixo */
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Animação para desenhar o círculo */
+@keyframes draw-circle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Animação para desenhar a cruz (X) */
+@keyframes draw-cross {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+
+/* --- ESTILOS DOS COMPONENTES --- */
+
+.blocked-page-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+  animation: fadeIn 0.3s ease-out both;
+}
+
+.blocked-card {
+  background-color: white;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 450px;
+  width: 100%;
+  border-top: 5px solid #ef4444;
+  animation: slideInUp 0.4s ease-out 0.1s both;
+}
+
+/* O container do ícone agora só define o tamanho */
+.blocked-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+}
+
+.error-icon-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Estilo e animação do círculo */
+.error-icon-circle {
+  stroke-width: 2; /* <<< CORRIGIDO: Linha mais fina para evitar corte */
+  stroke: #ef4444;
+  fill: #fee2e2;
+  stroke-dasharray: 157; /* Perímetro do círculo */
+  stroke-dashoffset: 157;
+  /* Começa 0.5s depois do card aparecer */
+  animation: draw-circle 0.7s ease-out 0.5s forwards;
+}
+
+/* Estilo e animação da cruz (X) */
+.error-icon-cross {
+  stroke-width: 3; /* <<< AJUSTADO: Um pouco mais fino para manter a proporção */
+  stroke: #ef4444;
+  stroke-linecap: round; /* Bordas arredondadas */
+  stroke-dasharray: 29; /* Comprimento aproximado de uma linha */
+  stroke-dashoffset: 29;
+  /* Começa depois do círculo ser desenhado */
+  animation: draw-cross 0.4s ease-out 1.2s forwards;
+}
+
+.blocked-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.75rem;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.blocked-card p {
+  margin: 0 0 2rem;
+  color: #475569;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.blocked-card .btn-reread {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background-color 0.2s, transform 0.2s;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+}
+
+.blocked-card .btn-reread:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+}

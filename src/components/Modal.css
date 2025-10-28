@@ -1,0 +1,113 @@
+/* src/components/Modal.css */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(10, 20, 30, 0.7); display: flex;
+  justify-content: center; align-items: center; z-index: 1000;
+  backdrop-filter: blur(5px); animation: fadeIn 0.3s ease;
+}
+.modal-content {
+  background-color: #ffffff; /* Fundo branco para melhor contraste */
+  color: #334155; /* Texto escuro */
+  border-radius: 8px; width: 90%; max-width: 500px; /* Largura padrão */
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  animation: slideIn 0.3s ease-out;
+  display: flex; /* Para organizar header/body/footer */
+  flex-direction: column;
+  max-height: 90vh; /* Limita altura máxima */
+}
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 25px; border-bottom: 1px solid #e2e8f0; /* Borda mais clara */
+}
+.modal-header h3 {
+  margin: 0; color: #1e293b; /* Título mais escuro */
+  font-size: 1.25rem;
+}
+.close-btn {
+  background: none; border: none; font-size: 1.8rem; cursor: pointer;
+  color: #94a3b8; /* Cinza mais claro */
+  padding: 0 5px; line-height: 1;
+}
+.close-btn:hover { color: #334155; }
+
+.modal-body {
+  padding: 25px;
+  overflow-y: auto; /* Adiciona scroll se conteúdo for grande */
+  flex-grow: 1; /* Faz o corpo ocupar espaço disponível */
+}
+.modal-body p { margin: 0 0 15px 0; line-height: 1.6; }
+
+.modal-form-group { margin-bottom: 20px; }
+.modal-form-group label {
+  display: block; margin-bottom: 8px; font-weight: 600; /* Mais forte */
+  font-size: 0.9rem; color: #475569; /* Azul acinzentado */
+}
+/* Estilo unificado para inputs, selects, textareas */
+.modal-form-group select,
+.modal-form-group input[type="text"],
+.modal-form-group input[type="email"],
+.modal-form-group input[type="password"],
+.modal-form-group textarea {
+  width: 100%; padding: 10px 12px; border-radius: 6px;
+  border: 1px solid #cbd5e1; /* Borda cinza */
+  background-color: #fff; color: #1e293b; /* Fundo branco, texto escuro */
+  font-size: 1rem; box-sizing: border-box; /* Evita estouro de largura */
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.modal-form-group select:focus,
+.modal-form-group input:focus,
+.modal-form-group textarea:focus {
+  outline: none; border-color: #0d6efd; /* Azul no foco */
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+}
+.modal-form-group select:disabled,
+.modal-form-group input:disabled,
+.modal-form-group textarea:disabled {
+    background-color: #e9ecef; /* Fundo cinza claro para desabilitado */
+    cursor: not-allowed;
+}
+
+
+.modal-footer {
+  display: flex; justify-content: flex-end; gap: 10px; /* Espaçamento entre botões */
+  padding: 15px 25px; background-color: #f8fafc; /* Fundo levemente cinza */
+  border-top: 1px solid #e2e8f0; /* Linha divisória */
+  border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;
+}
+.modal-footer button {
+  padding: 10px 20px; border: none; border-radius: 6px;
+  font-weight: 600; /* Mais forte */
+  font-size: 0.95rem;
+  cursor: pointer; transition: background-color 0.2s, opacity 0.2s;
+}
+.modal-footer .btn-secondary {
+  background-color: #6c757d; color: white; border: 1px solid #6c757d;
+}
+.modal-footer .btn-secondary:hover { background-color: #5a6268; }
+.modal-footer .btn-primary {
+  background-color: #0d6efd; color: white; border: 1px solid #0d6efd;
+}
+.modal-footer .btn-primary:hover { background-color: #0b5ed7; }
+/* Estilo para botão de perigo (Demitir) */
+.modal-footer .btn-danger {
+  background-color: #dc3545; color: white; border: 1px solid #dc3545;
+}
+.modal-footer .btn-danger:hover { background-color: #c82333; }
+
+.modal-footer button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+/* Mensagem de Status dentro do Modal Body */
+.status-message {
+  text-align: center; margin-top: 15px; margin-bottom: 0; padding: 10px;
+  border-radius: 4px; font-weight: 500; font-size: 0.9rem;
+}
+.status-loading { background-color: #e2e3e5; color: #383d41; }
+.status-success { background-color: #d4edda; color: #155724; }
+.status-error { background-color: #f8d7da; color: #721c24; }
+
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }

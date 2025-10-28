@@ -1,0 +1,103 @@
+.concurso-card {
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 24px;
+    /* margin-bottom: 20px; */ /* REMOVIDA OU COMENTADA */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid #f0f2f5;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #333;
+    word-break: break-word;
+}
+
+.status-tag {
+    padding: 5px 12px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: white;
+    flex-shrink: 0;
+    margin-left: 15px;
+}
+
+.status-aberto {
+    background-color: #28a745;
+}
+
+.status-encerrado {
+    background-color: #dc3545;
+}
+
+.card-description {
+  font-size: 1rem;
+  color: #495057;
+  line-height: 1.5;
+  margin-top: 0;
+  margin-bottom: 20px;
+  padding-top: 0;
+  border-top: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.card-body .info-row {
+    display: flex;
+    gap: 20px;
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.card-body i {
+    margin-right: 5px;
+}
+
+.card-footer {
+    margin-top: auto;
+    padding-top: 10px;
+}
+
+.btn-acessar-edital {
+    background-color: #ffc107;
+    color: #212529;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-acessar-edital:hover:not(:disabled) {
+    background-color: #e0a800;
+}
+
+.btn-acessar-edital:disabled {
+    background-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+    border: 1px solid #dee2e6;
+}
+
+.concursos-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px; /* Reduzido de 30px para 20px (exemplo) */
+}

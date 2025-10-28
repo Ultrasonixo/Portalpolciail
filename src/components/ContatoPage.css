@@ -1,0 +1,90 @@
+.contato-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 2rem;
+}
+
+.contato-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.contato-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.contato-header p {
+  font-size: 1.125rem;
+  color: #64748b;
+  margin-top: 0.5rem;
+}
+
+.contato-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .contato-options {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.contato-card {
+  background-color: #fff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.contato-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+.contato-icon.discord { background-color: #5865F2; }
+.contato-icon.email { background-color: #3b82f6; }
+
+.contato-card h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+}
+
+.contato-card p {
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  flex-grow: 1;
+}
+
+.contato-button {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  color: #fff;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.contato-button:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.contato-button.discord { background-color: #5865F2; }
+.contato-button.email { background-color: #3b82f6; }

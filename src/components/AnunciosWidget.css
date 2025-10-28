@@ -1,0 +1,47 @@
+.anuncios-widget {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.widget-title {
+    margin-top: 0;
+    color: #003366;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+}
+
+.anuncios-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.anuncio-item {
+    border-bottom: 1px solid #eee;
+    padding: 15px 5px;
+}
+
+.anuncio-item:last-child {
+    border-bottom: none;
+}
+
+.anuncio-titulo {
+    margin: 0 0 8px 0;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.anuncio-conteudo {
+    margin: 0 0 10px 0;
+    color: #666;
+    line-height: 1.5;
+    white-space: pre-line; /* ✅ ADICIONE ESTA LINHA */
+}
+
+.anuncio-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8em;
+    color: #999;
+}

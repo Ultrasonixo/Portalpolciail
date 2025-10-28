@@ -1,0 +1,89 @@
+/* src/ToastifyCustom.css (COMPLETO COM CORREÇÃO DO X) */
+
+/* --- Estilos Base da Notificação (MANTIDOS) --- */
+.Toastify__toast {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  padding: 14px 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  min-height: auto !important;
+}
+.Toastify__toast-body {
+  margin: 0 !important; padding: 0 10px !important; flex-grow: 1;
+  font-size: 0.95rem; display: flex; align-items: center;
+}
+.Toastify__toast-body:only-child { margin: auto 0 !important; padding: 0 !important; }
+.Toastify__progress-bar { height: 4px !important; }
+.Toastify__close-button { color: inherit !important; opacity: 0.7 !important; transition: opacity 0.2s ease-in-out; align-self: flex-start !important; margin: 0 !important; padding: 4px; }
+.Toastify__close-button:hover { opacity: 1 !important; }
+.Toastify__close-button > svg { height: 16px !important; width: 16px !important; }
+
+/* --- ÍCONES ANIMADOS SVG --- */
+.toast-icon-svg { width: 24px; height: 24px; flex-shrink: 0; display: block; margin-right: 5px; }
+
+/* Animação Checkmark (Desenho - MANTIDA) */
+.checkmark-svg { stroke-width: 3; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.checkmark-svg .checkmark-circle { stroke-dasharray: 166; stroke-dashoffset: 166; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) 0.3s forwards; }
+.checkmark-svg .checkmark-check { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards; }
+
+/* === CORREÇÃO: Animação X (Desenho das Linhas) === */
+.xmark-svg {
+  stroke-width: 3;
+  stroke: currentColor; /* Cor herdada */
+  stroke-linecap: round;
+  fill: none;
+  overflow: visible;
+}
+
+/* Define o comprimento (stroke-dasharray) e esconde (stroke-dashoffset) */
+.xmark-svg .xmark-line1,
+.xmark-svg .xmark-line2 {
+  /* Comprimento aproximado da linha diagonal de (-15,-15) a (15,15) é ~42.4 */
+  /* Usaremos 43 para garantir */
+  stroke-dasharray: 43;
+  stroke-dashoffset: 43; /* Começa invisível */
+  transform-origin: center center; /* Necessário caso haja transforms futuros */
+}
+
+/* Anima a primeira linha usando a animação 'stroke' */
+.xmark-svg .xmark-line1 {
+  /* Animação: nome | duração | easing | delay | preenchimento */
+  animation: stroke 0.3s ease-out 0.2s forwards;
+}
+
+/* Anima a segunda linha usando a animação 'stroke' com delay maior */
+.xmark-svg .xmark-line2 {
+  animation: stroke 0.3s ease-out 0.4s forwards; /* Começa um pouco depois da primeira */
+}
+
+/* Keyframes (Mantém 'stroke', remove 'drawX1', 'drawX2') */
+@keyframes stroke {
+  100% { stroke-dashoffset: 0; } /* Faz a linha aparecer */
+}
+/* === FIM DA CORREÇÃO === */
+
+
+/* --- CUSTOMIZAÇÃO DE CORES (MANTIDA) --- */
+/* Sucesso */
+.Toastify__toast--success { background-color: #10B981 !important; color: white !important; }
+.Toastify__progress-bar--success { background: #059669 !important; } /* Sua cor: #00ffaa */
+
+/* Erro */
+.Toastify__toast--error { background-color: #EF4444 !important; color: white !important; }
+.Toastify__progress-bar--error { background: #DC2626 !important; }
+
+/* Aviso */
+.Toastify__toast--warning { background-color: #F59E0B !important; color: #1f2937 !important; }
+.Toastify__progress-bar--warning { background: #D97706 !important; }
+.Toastify__toast--warning .toast-icon-svg,
+.Toastify__toast--warning .Toastify__close-button { color: #1f2937 !important; }
+
+/* Informação */
+.Toastify__toast--info { background-color: #3B82F6 !important; color: white !important; }
+.Toastify__progress-bar--info { background: #2563EB !important; }
+
+/* Padrão (Default) */
+.Toastify__toast--default { background-color: #4B5563 !important; color: white !important; }
+.Toastify__progress-bar--default { background: #374151 !important; }

@@ -1,0 +1,216 @@
+/* src/components/Auth.css - VERSÃO REFINADA */
+
+:root {
+  --auth-primary-color: #0056b3; /* Azul mais escuro (pode ajustar) */
+  --auth-secondary-color: #007bff; /* Azul padrão */
+  --auth-dark-gray: #343a40;
+  --auth-light-gray: #f8f9fa;
+  --auth-text-muted: #6c757d;
+  --auth-border-color: #dee2e6;
+}
+
+.auth-container {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; /* Fonte mais moderna */
+  background-color: var(--auth-light-gray);
+}
+
+/* === PAINEL ESQUERDO === */
+.auth-left-panel {
+  flex: 0 0 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 50px; /* Mais padding */
+  text-align: center;
+  background-color: var(--auth-dark-gray); /* Fundo cinza escuro */
+  color: #ffffff; /* Texto branco */
+}
+
+/* Estilo para o logo (opcional, se adicionado no JSX) */
+.auth-logo-large {
+  max-width: 120px; /* Ajuste o tamanho */
+  height: auto;
+  margin-bottom: 30px; /* Espaço abaixo do logo */
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)); /* Sombra suave */
+}
+
+.auth-left-panel h1 {
+  font-size: 2.5rem; /* Um pouco menor */
+  font-weight: 600; /* Menos pesado */
+  margin: 0 0 15px 0;
+  line-height: 1.2;
+}
+
+.auth-left-panel p {
+  font-size: 1.05rem; /* Um pouco menor */
+  max-width: 480px;
+  opacity: 0.8;
+  line-height: 1.7; /* Mais espaçamento entre linhas */
+}
+
+/* === PAINEL DIREITO (FORMULÁRIO) === */
+.auth-right-panel {
+  flex: 1;
+  background-color: var(--auth-light-gray);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.auth-form-container {
+  width: 100%;
+  max-width: 400px; /* Um pouco mais estreito */
+  padding: 45px; /* Mais padding interno */
+  background-color: white;
+  border-radius: 10px; /* Bordas mais arredondadas */
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08); /* Sombra mais suave e espalhada */
+  border: 1px solid var(--auth-border-color); /* Borda sutil */
+}
+
+/* --- Estilos do Formulário --- */
+
+.form-header {
+  text-align: left;
+  margin-bottom: 35px; /* Mais espaço abaixo do header */
+}
+
+.form-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--auth-dark-gray);
+  margin: 0 0 6px 0;
+}
+
+.auth-subtitle {
+  color: var(--auth-text-muted);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.input-group {
+  margin-bottom: 20px;
+  text-align: left;
+  position: relative; /* Para ícones (opcional) */
+}
+
+.input-group label {
+  display: block;
+  font-weight: 500; /* Peso médio */
+  margin-bottom: 8px;
+  color: #555; /* Cinza um pouco mais escuro */
+  font-size: 0.8rem; /* Menor */
+  text-transform: uppercase; /* CAIXA ALTA */
+  letter-spacing: 0.5px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 14px 18px; /* Mais padding interno */
+  border: 1px solid var(--auth-border-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  background-color: #fdfdfd; /* Fundo quase branco */
+  color: var(--auth-dark-gray);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+/* Placeholder mais suave */
+.input-group input::placeholder {
+  color: #aaa;
+  opacity: 1;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--auth-secondary-color); /* Azul no foco */
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15); /* Sombra mais suave */
+  background-color: #fff; /* Fundo branco no foco */
+}
+
+/* Botão Principal */
+.auth-button {
+  width: 100%;
+  padding: 14px 20px; /* Padding ajustado */
+  background: linear-gradient(to right, var(--auth-secondary-color), var(--auth-primary-color)); /* Gradiente */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px; /* Espaçamento entre letras */
+  cursor: pointer;
+  margin-top: 25px; /* Mais espaço acima do botão */
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2); /* Sombra azulada */
+}
+
+.auth-button:hover:not(:disabled) {
+  background: linear-gradient(to right, #0069d9, #004085); /* Gradiente mais escuro */
+  box-shadow: 0 6px 15px rgba(0, 123, 255, 0.3);
+  transform: translateY(-2px); /* Efeito de levantar */
+}
+
+.auth-button:disabled {
+  background: #adb5bd79; /* Cinza claro desabilitado */
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Links de Redirecionamento */
+.auth-redirect-link {
+  margin-top: 25px; /* Mais espaço */
+  text-align: center;
+  color: var(--auth-text-muted);
+  font-size: 0.85rem; /* Um pouco menor */
+}
+
+.auth-redirect-link a {
+  color: var(--auth-secondary-color); /* Azul */
+  text-decoration: none;
+  font-weight: 500;
+}
+.auth-redirect-link a:hover {
+  text-decoration: underline;
+  color: var(--auth-primary-color);
+}
+
+/* Ajuste específico para o reCAPTCHA */
+.captcha-group {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  margin-top: 20px; /* Mais espaço */
+  transform: scale(0.95); /* Deixa o reCAPTCHA um pouco menor (opcional) */
+  transform-origin: center;
+}
+
+/* --- Responsividade (Mobile) --- */
+@media (max-width: 992px) {
+  .auth-left-panel {
+    display: none;
+  }
+  .auth-right-panel {
+    flex: 1 1 100%;
+    padding: 20px;
+  }
+  .auth-form-container {
+     padding: 30px 25px; /* Padding ajustado no mobile */
+     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); /* Sombra mais leve no mobile */
+     border: none; /* Remove borda no mobile (opcional) */
+  }
+  .form-header {
+      text-align: center; /* Centraliza header no mobile */
+      margin-bottom: 25px;
+  }
+  .form-header h2 { font-size: 1.4rem; }
+  .auth-subtitle { font-size: 0.85rem; }
+  .captcha-group { transform: scale(0.9); } /* Diminui mais o reCAPTCHA */
+}

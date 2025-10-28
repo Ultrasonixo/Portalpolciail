@@ -1,0 +1,119 @@
+/* src/pages/ChangelogPage.css */
+
+.changelog-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding-top: 40px; /* Espaço abaixo do header */
+    padding-bottom: 60px; /* Espaço acima do footer */
+}
+
+/* Reutiliza o estilo do header de ConcursosPage (se existir e for adequado) */
+.page-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e2e8f0;
+}
+.page-header h1 {
+    font-size: 2.5rem;
+    color: #1e293b;
+    margin-bottom: 10px;
+}
+.page-header p {
+    font-size: 1.1rem;
+    color: #6c757d;
+}
+
+/* Mensagens de loading, erro e vazio */
+.loading-message,
+.empty-message {
+    text-align: center;
+    color: #6c757d;
+    padding: 40px 20px;
+    font-style: italic;
+}
+.error-message {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c2c7;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+
+/* Lista de Entradas */
+.changelog-list {
+    display: flex;
+    flex-direction: column;
+    gap: 30px; /* Espaço entre as entradas */
+}
+
+/* Cada Entrada Individual */
+.changelog-entry {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+    overflow: hidden; /* Garante que o header se junte bem */
+}
+
+.entry-header {
+    padding: 20px 25px;
+    background-color: #f8fafc; /* Fundo levemente diferente para o header */
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.entry-title {
+    margin: 0 0 8px 0;
+    font-size: 1.5rem;
+    color: #334155;
+    font-weight: 600;
+}
+
+.entry-meta {
+    display: flex;
+    flex-wrap: wrap; /* Permite quebrar em telas menores */
+    gap: 5px 15px; /* Espaço vertical e horizontal */
+    font-size: 0.85rem;
+    color: #6b7280; /* Cinza médio */
+}
+
+.entry-version {
+    font-weight: 500;
+    background-color: #e0e7ff; /* Fundo azul claro para versão */
+    color: #4338ca; /* Azul escuro */
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.entry-date {
+    font-style: italic;
+}
+
+.entry-author {
+    font-weight: 500;
+}
+
+.entry-content {
+    padding: 25px;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #4b5563; /* Cinza escuro para o conteúdo */
+}
+
+/* Estilos para listas, negrito, etc., se usar Markdown no futuro */
+.entry-content ul,
+.entry-content ol {
+    padding-left: 25px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.entry-content li {
+    margin-bottom: 5px;
+}
+.entry-content strong {
+    font-weight: 600;
+    color: #1f2937;
+}

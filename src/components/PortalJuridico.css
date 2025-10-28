@@ -1,0 +1,88 @@
+/* src/components/PortalJuridico.css - Estilos para "Em Desenvolvimento" */
+
+/* Estilo geral da página (usa .page-container se definido globalmente, senão defina aqui) */
+.portal-juridico-page {
+  max-width: 900px; /* Limita a largura */
+  margin: 0 auto; /* Centraliza */
+  padding: 40px 20px;
+}
+
+.portal-header {
+  text-align: center;
+  margin-bottom: 50px; /* Mais espaço abaixo do título */
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0; /* Linha sutil */
+}
+
+.portal-header h1 {
+  font-size: 2.5rem;
+  color: #1e293b; /* Cor escura */
+  margin-bottom: 5px;
+}
+
+/* Seção "Em Desenvolvimento" */
+.coming-soon-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 40vh; /* Altura mínima para ocupar espaço */
+  padding: 40px 20px;
+}
+
+.coming-soon-content {
+  text-align: center;
+  max-width: 500px;
+  background-color: #fff; /* Fundo branco */
+  padding: 40px 50px; /* Padding interno */
+  border-radius: 12px; /* Bordas arredondadas */
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07); /* Sombra */
+  border: 1px solid #e2e8f0; /* Borda sutil */
+}
+
+.coming-soon-icon {
+  font-size: 3.5rem; /* Tamanho do ícone */
+  color: #0d6efd; /* Azul primário */
+  margin-bottom: 25px;
+  /* Animação de pulso (opcional) */
+  animation: pulse 2s infinite ease-in-out;
+}
+
+/* Spinner CSS Alternativo (descomente se preferir ao invés do ícone Font Awesome) */
+/*
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f0f0f0;
+  border-top: 5px solid #0d6efd;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 25px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+*/
+
+.coming-soon-content h2 {
+  font-size: 1.8rem;
+  color: #343a40; /* Cinza escuro */
+  margin-bottom: 15px;
+}
+
+.coming-soon-content p {
+  font-size: 1rem;
+  color: #6c757d; /* Cinza médio */
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Animação de pulso para o ícone */
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+/* Removemos os estilos antigos de .portal-card */

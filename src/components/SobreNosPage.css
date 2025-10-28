@@ -1,0 +1,100 @@
+/* src/pages/SobreNosPage.css - VERSÃO FINAL E COMPACTA */
+
+.about-us-container {
+    max-width: 1100px;
+    margin: 1px auto; /* ✅ REDUZIDA A MARGEM PRINCIPAL NO TOPO E EMBAIXO */
+    padding: 20px;
+}
+
+/* --- Seção Herói (Topo da Página) --- */
+.hero-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 2px;          /* ✅ REDUZIDO O PREENCHIMENTO INTERNO */
+    margin-bottom: 3px;    /* ✅ REDUZIDA A MARGEM ABAIXO */
+    text-align: center;
+}
+
+.hero-logo {
+    max-width: 400px; /* Um pouco menor para um visual mais limpo */
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.hero-subtitle {
+    font-size: 1.1rem;
+    color: #64748b;
+    max-width: 600px;
+    margin: 0;
+}
+
+/* --- Grid de Valores (Missão, Visão, etc.) --- */
+.values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px; /* ✅ REDUZIDA A MARGEM ABAIXO */
+}
+
+.value-card {
+    background-color: #fff;
+    padding: 25px; /* Reduzido o preenchimento interno dos cards */
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    text-align: center;
+}
+
+.value-icon {
+    font-size: 1.8rem;
+    color: #0d6efd;
+    background-color: #e7f0ff;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px auto;
+}
+
+.value-card h3 {
+    font-size: 1.25rem;
+    color: #334155;
+    margin-bottom: 10px;
+}
+
+.value-card p {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #64748b;
+}
+
+/* --- Seção de História --- */
+.history-section {
+    background-color: #fff;
+    padding: 35px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.history-section h2 {
+    text-align: center;
+    font-size: 1.8rem;
+    color: #1e293b;
+    margin-bottom: 20px;
+}
+
+.history-section p {
+    font-size: 1rem;
+    line-height: 1.7;
+    text-align: justify;
+}

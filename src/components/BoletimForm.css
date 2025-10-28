@@ -1,0 +1,140 @@
+.bo-page-container {
+    display: flex;
+    justify-content: center;
+    padding: 0px 20px;
+    background-color: #f4f7fc; /* Um cinza azulado bem claro */
+    min-height: calc(100vh - 80px); /* Ocupa a altura da tela menos o header */
+}
+
+.bo-form-card {
+    width: 100%;
+    max-width: 800px;
+    background: #ffffff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+}
+
+.bo-form-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.bo-form-header .form-icon {
+    font-size: 2rem;
+    color: #4a6cf7; /* Azul principal */
+    background-color: #e8ecff;
+    padding: 15px;
+    border-radius: 50%;
+    margin-bottom: 15px;
+}
+
+.bo-form-header h2 {
+    font-size: 1.8rem;
+    color: #1a237e;
+    margin: 0 0 5px 0;
+}
+
+.bo-form-header p {
+    color: #6c757d;
+}
+
+.user-info-box {
+    display: flex;
+    gap: 20px;
+    background-color: #e8ecff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border-left: 5px solid #4a6cf7;
+}
+
+.user-info-box div {
+    flex: 1;
+}
+
+.user-info-box label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.user-info-box p {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #1a237e;
+    margin: 0;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-row .input-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    font-weight: 500;
+    color: #343a40;
+    margin-bottom: 8px;
+}
+
+.input-group input[type="text"],
+.input-group input[type="date"],
+.input-group select,
+.input-group textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-group input:focus,
+.input-group select:focus,
+.input-group textarea:focus {
+    outline: none;
+    border-color: #4a6cf7;
+    box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.2);
+}
+
+.input-group small {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-top: 5px;
+}
+
+.submit-bo-button {
+    width: 100%;
+    padding: 15px;
+    background-color: #4a6cf7;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.submit-bo-button:hover {
+    background-color: #1a237e;
+    transform: translateY(-2px);
+}

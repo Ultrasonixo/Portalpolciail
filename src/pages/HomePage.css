@@ -1,0 +1,7 @@
+.services-section { padding: 8px 0px; text-align: center; background-color: var(--cor-fundo); }
+.services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; max-width: 1200px; margin: 40px auto 0 auto; }
+.service-card { background: var(--cor-branco); padding: 30px; border-radius: 8px; box-shadow: var(--sombra-padrao); border-top: 4px solid transparent; text-align: center; text-decoration: none; color: var(--cor-texto); transition: transform 0.3s, box-shadow 0.3s; }
+.service-card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+.service-card:nth-child(1) { border-color: #1976D2; } .service-card:nth-child(2) { border-color: #28a745; } .service-card:nth-child(3) { border-color: #ffc107; } .service-card:nth-child(4) { border-color: #6f42c1; }
+.service-card i { font-size: 2.5rem; margin-bottom: 15px; }
+.service-card:nth-child(1) i { color: #1976D2; } .service-card:nth-child(2) i { color: #28a745; } .service-card:nth-child(3) i { color: #ffc107; } .service-card:nth-child(4) i { color: #6f42c1; }

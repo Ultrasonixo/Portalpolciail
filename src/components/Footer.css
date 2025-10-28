@@ -1,0 +1,121 @@
+/* src/components/Footer.css */
+.site-footer {
+    background-color: #1a237e; /* Mesmo azul escuro do header */
+    color: rgba(255, 255, 255, 0.8);
+    padding: 60px 0;
+    font-size: 0.9rem;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.footer-top {
+    display: flex; /* ESTA É A REGRA QUE CRIA AS COLUNAS */
+    justify-content: space-between;
+    gap: 40px;
+    margin-bottom: 40px;
+    flex-wrap: wrap; /* Permite que as colunas quebrem em telas pequenas */
+}
+
+.footer-about {
+    flex: 2;
+    min-width: 250px;
+}
+
+.footer-logo-container {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: white;
+    margin-bottom: 15px;
+}
+
+.footer-description {
+    line-height: 1.6;
+}
+
+.social-icons {
+    margin-top: 20px;
+    display: flex;
+    gap: 15px;
+}
+
+.social-icons a {
+    color: white;
+    font-size: 1.5rem;
+    transition: color 0.3s, transform 0.3s;
+}
+
+.social-icons a:hover {
+    color: #f1c40f; /* Dourado */
+    transform: translateY(-3px);
+}
+
+.footer-links {
+    flex: 1;
+    min-width: 180px;
+}
+
+.footer-links h3 {
+    color: white;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-links ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-links ul li {
+    margin-bottom: 12px;
+}
+
+.footer-links ul a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: color 0.3s, padding-left 0.3s;
+}
+
+.footer-links ul a:hover {
+    color: white;
+    padding-left: 5px;
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 20px;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.online-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #2ecc71; /* Verde */
+    border-radius: 50%;
+    margin-right: 8px;
+    box-shadow: 0 0 5px #2ecc71;
+}
+
+/* Responsividade para o Mobile */
+@media (max-width: 768px) {
+    .footer-top {
+        flex-direction: column; /* No mobile, as colunas voltam a ser empilhadas */
+        text-align: center;
+    }
+    .footer-about {
+        align-items: center;
+    }
+    .social-icons {
+        justify-content: center;
+    }
+}

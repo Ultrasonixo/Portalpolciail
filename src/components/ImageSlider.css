@@ -1,0 +1,121 @@
+/* src/components/ImageSlider.css */
+/* Estilos para o container do slider */
+.image-slider-container {
+    width: 100%;
+    height: 100%; /* Ocupa 100% da altura da seção pai (hero-section) */
+}
+
+.image-slider-container.background-slider .slick-slider,
+.image-slider-container.background-slider .slick-list,
+.image-slider-container.background-slider .slick-track,
+.image-slider-container.background-slider .slick-slide > div,
+.image-slider-container.background-slider .slider-image-wrapper {
+    height: 100%; /* Garante que os elementos do slider ocupem toda a altura */
+    width: 100%;
+}
+
+.image-slider-container.background-slider .slider-image-wrapper {
+    display: flex !important; /* Força flex para centralizar conteúdo */
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.image-slider-container.background-slider .slider-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Garante que a imagem cubra todo o espaço sem distorcer */
+    object-position: center;
+}
+
+/* Estilos para as setas de navegação */
+.image-slider-container.background-slider .slick-prev,
+.image-slider-container.background-slider .slick-next {
+    z-index: 10;
+    width: 50px;
+    height: 50px;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+}
+
+.image-slider-container.background-slider .slick-prev:hover,
+.image-slider-container.background-slider .slick-next:hover {
+    opacity: 1;
+}
+
+.image-slider-container.background-slider .slick-prev:before,
+.image-slider-container.background-slider .slick-next:before {
+    font-family: 'Font Awesome 5 Free'; /* Assegura que Font Awesome seja usado */
+    font-weight: 900;
+    font-size: 2.5rem;
+    color: white; /* Cor das setas */
+    opacity: 1; /* Garante que o ícone esteja visível */
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* Sombra para melhorar visibilidade */
+}
+
+.image-slider-container.background-slider .slick-prev:before {
+    content: "\f104"; /* Ícone de seta para a esquerda */
+}
+
+.image-slider-container.background-slider .slick-next:before {
+    content: "\f105"; /* Ícone de seta para a direita */
+}
+
+/* Posicionamento das setas */
+.image-slider-container.background-slider .slick-prev {
+    left: 20px;
+}
+
+.image-slider-container.background-slider .slick-next {
+    right: 20px;
+}
+
+/* Estilos para os indicadores (dots) */
+.image-slider-container.background-slider .slick-dots {
+    bottom: 20px;
+    z-index: 10;
+}
+
+.image-slider-container.background-slider .slick-dots li button:before {
+    font-size: 1rem;
+    color: white; /* Cor dos indicadores inativos */
+    opacity: 0.5;
+    transition: opacity 0.3s;
+}
+
+.image-slider-container.background-slider .slick-dots li.slick-active button:before {
+    color: white; /* Cor do indicador ativo */
+    opacity: 1;
+}
+
+/* Estilos para os indicadores de quadrado */
+.slick-square-thumbs {
+    list-style: none;
+    display: flex !important;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+}
+
+.slick-square-thumbs li {
+    margin: 0 5px;
+}
+
+.slick-square-indicator {
+    display: block;
+    width: 12px;
+    height: 12px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 3px;
+    transition: background-color 0.3s, transform 0.3s;
+    cursor: pointer;
+}
+
+.slick-square-thumbs li.slick-active .slick-square-indicator {
+    background-color: white;
+    transform: scale(1.2);
+}
+
+.slick-square-thumbs li:hover .slick-square-indicator {
+    background-color: rgba(255, 255, 255, 0.8);
+}

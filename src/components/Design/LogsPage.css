@@ -1,0 +1,256 @@
+/* src/components/LogsPage.css - VERSÃO ATUALIZADA COM FILTROS E DETALHES */
+
+.page-header-logs {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap; /* Garante que quebre em telas menores */
+    gap: 15px;
+}
+
+.logs-table-widget {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto; /* Permite scroll horizontal se necessário */
+}
+
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    table-layout: fixed; /* Ajuda a controlar larguras de coluna */
+    word-wrap: break-word; /* Garante que palavras longas quebrem */
+}
+
+.logs-table th,
+.logs-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle; /* Alinha conteúdo verticalmente */
+}
+
+.logs-table thead {
+    background-color: #f8fafc;
+}
+
+.logs-table th {
+    color: #64748b;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    white-space: nowrap; /* Impede que o título do header quebre */
+}
+
+.logs-table tbody tr:hover {
+    background-color: #f8fafc; /* Fundo suave ao passar o mouse */
+}
+
+/* --- ESTILOS PARA FILTROS --- */
+.log-filters {
+    display: grid;
+    /* Ajustado para 4 colunas ou menos em telas menores */
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Garante que o botão ocupe a largura da coluna se quebrar */
+.log-filters .clear-filters-btn {
+     grid-column: span 1; /* Ocupa uma coluna por padrão */
+}
+/* Media query específica para o layout de 4 colunas */
+@media (min-width: 992px) {
+  .log-filters {
+    grid-template-columns: 2fr 1.5fr 1fr auto; /* Layout original para telas largas */
+  }
+}
+
+
+.log-filters input,
+.log-filters select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background-color: #f8fafc;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+.log-filters input:focus,
+.log-filters select:focus {
+    outline: none;
+    border-color: #0d6efd;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+}
+.clear-filters-btn {
+    padding: 10px 18px;
+    border-radius: 6px;
+    border: 1px solid #6c757d;
+    background-color: transparent;
+    color: #6c757d;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap; /* Evita que o texto do botão quebre */
+}
+.clear-filters-btn:hover {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+
+/* --- ESTILOS PARA DETALHES FORMATADOS --- */
+.log-details-cell {
+    padding: 8px 15px !important; /* Ajusta padding vertical */
+    /* white-space: normal !important; */ /* Garante que o padrão seja aplicado */
+    /* word-break: break-word; */ /* Permite quebrar palavras longas */
+    /* overflow-wrap: break-word; */ /* Alternativa para quebrar palavras */
+}
+
+.details-container {
+    background-color: #f8fafc;
+    border-radius: 4px;
+    padding: 10px 12px; /* Padding interno */
+    border: 1px solid #e2e8f0;
+    font-size: 0.85rem;
+    line-height: 1.5; /* Melhora legibilidade */
+}
+
+.detail-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 5px; /* Leve aumento no espaço */
+}
+.detail-item:last-child {
+    margin-bottom: 0;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #475569;
+    flex-shrink: 0; /* Impede que o label encolha */
+    white-space: nowrap; /* Evita que o label quebre linha */
+}
+
+.detail-value {
+    color: #334155;
+    /* word-break: break-all; */ /* Movido para o container pai (div na td) */
+}
+
+/* Para itens que ocupam a largura toda (como lista de alterações ou descrição de bug) */
+.detail-item-full {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 5px;
+}
+.detail-item-full:last-child { margin-bottom: 0; }
+
+/* Bloco para descrição de bug ou outras informações multi-linha */
+.detail-value-block {
+    margin: 4px 0 0 0;
+    padding: 8px 10px;
+    background-color: #fff;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0; /* Adiciona borda sutil */
+    white-space: pre-wrap; /* Mantém quebras de linha e espaços */
+    font-style: normal; /* Remove itálico se não desejado */
+    color: #475569;
+    max-height: 150px; /* Limita altura com scroll */
+    overflow-y: auto;
+    font-size: 0.8rem; /* Fonte menor para blocos grandes */
+}
+
+/* Lista de alterações */
+.detail-changes-list {
+    margin: 4px 0 0 0;
+    padding-left: 25px; /* Mais indentação */
+    list-style-type: '↪ '; /* Ícone de seta */
+    color: #334155;
+}
+.detail-changes-list li {
+    margin-bottom: 3px;
+}
+
+/* Estilo para JSON bruto (caso default) */
+.raw-details {
+    margin: 0;
+    font-size: 0.8em;
+    white-space: pre-wrap; /* Mantém formatação do JSON */
+    word-break: break-all; /* Quebra linhas longas */
+    background-color: #fff; /* Fundo branco para diferenciar */
+    padding: 8px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    max-height: 200px; /* Limita altura com scroll */
+    overflow: auto; /* Scroll horizontal e vertical */
+    font-family: monospace; /* Fonte monoespaçada para JSON */
+}
+
+
+/* --- TAGS DE AÇÃO --- */
+.log-action-tag {
+    padding: 4px 10px; /* Leve ajuste no padding */
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600; /* Menos bold */
+    color: #fff;
+    white-space: nowrap;
+    display: inline-block; /* Garante comportamento de bloco */
+}
+/* Cores (já inclui os fallbacks) */
+.log-action-Manage-Career { background-color: #6366f1; }
+.log-action-Approve-Recruit { background-color: #10b981; }
+.log-action-Reject-Recruit, .log-action-Dismiss-Policial { background-color: #ef4444; }
+.log-action-Generate-Registration-Token { background-color: #f59e0b; } /* Nome completo */
+.log-action-Update-Policial-Data { background-color: #3b82f6; }
+.log-action-Create-Announcement { background-color: #0ea5e9; }
+.log-action-Bug-Report { background-color: #8b5cf6; }
+/* Cor unificada para Concursos e Fallbacks */
+.log-action-Create-Concurso,
+.log-action-Update-Concurso,
+.log-action-Delete-Concurso,
+.log-action-Create-Concurso-Fallback-V2,
+.log-action-Create-Concurso-Fallback-V1 {
+     background-color: #0d9488;
+}
+/* Adicione cores para outras ações se necessário */
+
+
+/* Paginação e Outros Estilos */
+.pagination-controls { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-top: 1px solid #e2e8f0; background-color: #f8fafc; }
+.pagination-controls button { background-color: #0d6efd; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
+.pagination-controls button:hover:not(:disabled) { background-color: #0b5ed7; }
+.pagination-controls button:disabled { background-color: #adb5bd; cursor: not-allowed; opacity: 0.7; }
+.pagination-controls span { font-size: 0.9rem; color: #495057; font-weight: 500; }
+.error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c2c7; padding: 10px 15px; border-radius: 5px; margin-bottom: 15px; }
+
+/* Responsividade Geral */
+@media (max-width: 768px) {
+    /* Filtros ficam em coluna única */
+    .log-filters {
+        grid-template-columns: 1fr;
+    }
+    /* Reduz padding da tabela em telas pequenas */
+    .logs-table th,
+    .logs-table td {
+        padding: 10px 12px;
+    }
+    /* Ajusta fonte dos detalhes */
+    .details-container, .raw-details {
+        font-size: 0.8rem;
+    }
+}

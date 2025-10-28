@@ -1,0 +1,157 @@
+/* src/components/Form.css */
+
+/* --- KEYFRAMES (ANIMAÇÕES DE ENTRADA) --- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* --- ESTILO GERAL DA PÁGINA --- */
+.form-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f8fafc; /* Fundo cinza claro */
+  padding: 1rem;
+  animation: fadeIn 0.5s ease-out both; /* Animação de fundo */
+}
+
+/* --- CAIXA DO FORMULÁRIO --- */
+.form-box {
+  background-color: #ffffff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  border-top: 4px solid #3b82f6; /* Borda azul no topo */
+  animation: slideInUp 0.6s ease-out 0.2s both; /* Animação da caixa */
+}
+
+.form-logo {
+  width: 50px;
+  height: auto;
+  margin: 0 auto 1.5rem;
+}
+
+.form-box h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem;
+}
+
+.form-subtitle {
+  color: #64748b;
+  margin: 0 0 2rem;
+}
+
+/* --- GRUPOS DE INPUT --- */
+.input-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #1e293b;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* --- WRAPPER DA SENHA (PARA O ÍCONE) --- */
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  padding-right: 3rem; /* Espaço para o ícone */
+}
+
+.password-toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+}
+
+/* --- BOTÃO DE SUBMISSÃO --- */
+.submit-btn {
+  width: 100%;
+  padding: 0.875rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #3b82f6;
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+.submit-btn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* --- OUTROS ELEMENTOS --- */
+.captcha-group {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.form-links {
+  margin-top: 1.5rem;
+  color: #475569;
+}
+
+.form-links p {
+  margin: 0.5rem 0;
+}
+
+.form-links a {
+  color: #3b82f6;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.form-links a:hover {
+  text-decoration: underline;
+}

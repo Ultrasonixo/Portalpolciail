@@ -1,0 +1,122 @@
+/* src/pages/LegalPage.css */
+/* Usado por TermosPage.jsx e PrivacidadePage.jsx */
+
+.legal-page-wrapper {
+  padding: 2.5rem 1rem;
+  background-color: #f8fafc;
+  min-height: calc(100vh - 120px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.legal-container {
+  max-width: 900px;
+  width: 100%;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.legal-container h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.legal-subtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0 0 2rem 0;
+}
+
+.pdf-document-viewer {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: #f1f5f9;
+}
+
+/* --- BARRA DE FERRAMENTAS DO PDF --- */
+.pdf-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 8px 8px 0 0;
+}
+
+.pdf-tool-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pdf-tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: #fff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.pdf-tool-btn:hover:not(:disabled) {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.pdf-tool-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pdf-tool-btn.download {
+  text-decoration: none;
+}
+
+.page-indicator {
+  font-size: 0.9rem;
+  color: #475569;
+  font-weight: 500;
+  padding: 0 0.5rem;
+  min-width: 80px; /* Garante espaço para o texto */
+  text-align: center;
+}
+
+/* --- CONTAINER DO DOCUMENTO --- */
+.pdf-document-container {
+  padding: 1rem;
+  max-height: 70vh; /* Define uma altura máxima */
+  overflow: auto; /* Adiciona scroll se o conteúdo for maior */
+}
+
+.pdf-document {
+  display: flex;
+  justify-content: center;
+}
+
+.react-pdf__Page__canvas {
+  max-width: 100%;
+  height: auto !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.pdf-status-message {
+  padding: 4rem 2rem;
+  font-size: 1rem;
+  color: #475569;
+}
+
+.pdf-status-message.error {
+  color: #dc2626;
+}

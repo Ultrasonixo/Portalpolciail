@@ -1,0 +1,7 @@
+.hero-content { text-align: center; margin: auto; padding: 4rem 1rem; color: var(--cor-branco); }
+.hero-content h1 { font-size: 3.5rem; margin: 0; font-weight: 700; }
+.hero-content h2 { font-size: 1.5rem; margin: 0 0 20px 0; font-weight: 400; opacity: 0.9; }
+.hero-content p { max-width: 600px; margin: 0 auto 30px auto; opacity: 0.9; font-size: 1.1rem; }
+.hero-buttons .btn { padding: 12px 30px; border-radius: 4px; text-decoration: none; margin: 0 10px; font-weight: 700; transition: transform 0.2s, box-shadow 0.2s; }
+.hero-buttons .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+.btn.btn-primary { background-color: var(--cor-branco); color: var(--cor-primaria); }
