@@ -1,56 +1,105 @@
-/* src/components/PoliceDashboard.css (VERSÃO CORRIGIDA - Foco nos Cards) */
+/* src/components/PoliceDashboard.css (Completo com Layout da Sidebar) */
 
-/* --- Animação e Layout Base --- */
-.dashboard-container { 
-    animation: fadeIn 0.5s ease-in-out; 
+/* --- Animação e Layout Base (Dashboard + Geral) --- */
+.dashboard-container {
+    animation: fadeIn 0.5s ease-in-out;
     padding: 1px; /* Previne colapso de margens */
+    /* Removido o padding: 20px 30px; para permitir controle pelo main-content */
 }
 
-.page-title { 
-    font-size: 2rem; 
+/* Container principal que inclui sidebar e conteúdo */
+.police-dashboard-container {
+  display: flex; /* Organiza sidebar e main lado a lado */
+  min-height: 100vh; /* Garante altura total */
+}
+
+/* Sidebar (Layout Principal) */
+.sidebar {
+  width: 250px; /* Largura da sidebar */
+  position: fixed; /* Mantém a sidebar fixa */
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background-color: #1f2937; /* Fundo escuro */
+  color: #e5e7eb; /* Texto claro */
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease-in-out; /* Para mobile (se houver toggle) */
+  /* Adicione aqui os estilos internos da sidebar do componente PainelPoliciaSidebar.jsx se necessário */
+  /* Ex: .sidebar-header, .sidebar-nav, .sidebar-footer, etc. */
+}
+
+/* Conteúdo Principal (Layout Principal) */
+.main-content {
+  margin-left: 250px; /* << IMPORTANTE: Empurra o conteúdo para a direita */
+  flex-grow: 1; /* Ocupa o resto do espaço */
+  padding: 30px 40px; /* Padding interno para o conteúdo das views */
+  background-color: #f3f4f6; /* Fundo claro para conteúdo */
+  min-height: 100vh; /* Garante altura */
+}
+
+/* Ajustes Responsivos (Layout Principal) */
+@media (max-width: 768px) {
+  .sidebar {
+    /* Por padrão escondido ou com lógica de toggle */
+    transform: translateX(-100%);
+     /* Se tiver um estado 'open', adicione .sidebar.open { transform: translateX(0); } */
+  }
+  .main-content {
+    margin-left: 0; /* Remove margem quando sidebar está oculta */
+    padding: 20px; /* Ajusta padding */
+  }
+  /* Adicione aqui estilos para botão hamburger se necessário */
+}
+
+
+/* --- Estilos Específicos do Dashboard (Conteúdo Principal) --- */
+
+.page-title {
+    font-size: 2rem;
     font-weight: 700;
-    color: #1e293b; 
-    margin: 0 0 5px 0; 
+    color: #1e293b;
+    margin: 0 0 5px 0;
 }
 
-.page-subtitle { 
-    color: #64748b; 
-    margin-top: 0; 
-    margin-bottom: 30px; 
+.page-subtitle {
+    color: #64748b;
+    margin-top: 0;
+    margin-bottom: 30px;
 }
 
 .error-message {
-    background-color: #fef2f2; 
-    color: #dc2626; 
+    background-color: #fef2f2;
+    color: #dc2626;
     padding: 15px 20px;
     border-radius: 8px;
-    border: 1px solid #fecaca; 
+    border: 1px solid #fecaca;
     margin-bottom: 20px;
     font-weight: 500;
 }
 
-
-/* --- Grid de Estatísticas --- */
-.stats-grid { 
-    display: grid; 
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
-    gap: 20px; 
-    margin-bottom: 40px; 
+/* --- Grid de Estatísticas (Dashboard) --- */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
 }
 
-/* === CORREÇÃO: Card de Estatística === */
+/* Card de Estatística (Dashboard) */
 .stat-card {
-    display: flex; /* USA FLEXBOX */
-    align-items: center; /* ALINHA VERTICALMENTE */
-    justify-content: space-between; /* EMPURRA INFO PARA ESQUERDA, ÍCONE PARA DIREITA */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     background-color: #ffffff;
-    padding: 20px 25px; 
+    padding: 20px 25px;
     border-radius: 12px;
-    border: 1px solid #e2e8f0; 
+    border: 1px solid #e2e8f0;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    border-left: none; 
-    overflow: hidden; 
+    overflow: hidden;
+    /* border-left foi removido, pode ser redundante com a borda geral */
 }
 
 .stat-card:hover {
@@ -58,39 +107,36 @@
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.07);
 }
 
-.stat-card.loading { 
-    opacity: 0.7; 
+.stat-card.loading {
+    opacity: 0.7;
     cursor: progress;
 }
 
-/* Container da Informação (Título e Valor) */
-.stat-info { 
-    display: flex; 
-    flex-direction: column; 
-    /* Ocupa o espaço disponível, mas permite encolher se necessário */
-    flex: 1 1 auto; 
-    min-width: 0; /* IMPEDE QUE TEXTO LONGO QUEBRE O LAYOUT */
-    margin-right: 15px; /* Espaço entre o texto e o ícone */
+.stat-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-right: 15px;
 }
 
-.stat-title { 
-    color: #64748b; 
-    font-size: 0.9rem; 
+.stat-title {
+    color: #64748b;
+    font-size: 0.9rem;
     font-weight: 500;
-    margin-bottom: 5px; 
-    white-space: nowrap; 
-    overflow: hidden; /* Esconde texto que não cabe */
-    text-overflow: ellipsis; /* Adiciona "..." */
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.stat-value { 
-    font-size: 1.75rem; 
-    font-weight: 700; 
-    color: #1e293b; 
-    white-space: nowrap; 
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
 }
 
-/* Container do Ícone (sem 'flex-grow') */
 .stat-icon-wrapper {
     width: 50px;
     height: 50px;
@@ -98,195 +144,346 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--card-color); 
+    background-color: var(--card-color); /* Usa a variável CSS definida no style */
     color: #ffffff;
     font-size: 1.25rem;
-    /* margin-left: auto; */ /* NÃO PRECISA MAIS COM justify-content: space-between no pai */
-    flex-shrink: 0; /* Impede que o ícone encolha */
-    box-shadow: 0 4px 12px var(--card-shadow); 
-}
-/* === FIM DA CORREÇÃO === */
-
-
-/* --- Layout Principal (Colunas) --- */
-.dashboard-columns { 
-    display: grid; 
-    grid-template-columns: 1.5fr 1fr; 
-    gap: 30px; 
-    align-items: start; 
-}
-
-@media (max-width: 1024px) { 
-    .dashboard-columns { 
-        grid-template-columns: 1fr; 
-    } 
-}
-
-/* Widget Base */
-.dashboard-widget { 
-    background-color: #fff; 
-    border-radius: 12px; 
-    padding: 25px; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    border: 1px solid #e2e8f0; 
-    display: flex;
-    flex-direction: column; 
-    height: 100%; 
-}
-
-.widget-title { 
-    font-size: 1.25rem; 
-    font-weight: 600;
-    margin-top: 0; 
-    margin-bottom: 20px; 
-    color: #334155; 
-    border-bottom: 1px solid #e2e8f0; 
-    padding-bottom: 15px; 
     flex-shrink: 0;
+    box-shadow: 0 4px 12px var(--card-shadow); /* Usa a variável CSS */
 }
 
-
-/* --- Ações Rápidas --- */
-.quick-actions-grid { 
-    display: grid; 
-    grid-template-columns: repeat(2, 1fr); 
-    gap: 15px; 
-    flex-grow: 1; 
-    align-content: start; 
+/* --- Layout de Colunas (Dashboard) --- */
+.dashboard-columns {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr; /* Coluna esquerda maior */
+    gap: 30px;
+    align-items: start; /* Alinha os widgets no topo */
 }
 
-.quick-action-button { 
-    background-color: #f8fafc; 
-    border: 1px solid #e2e8f0; 
-    color: #334155; 
-    text-decoration: none; 
-    padding: 25px 15px; 
-    border-radius: 10px; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    justify-content: center; 
-    text-align: center; 
-    font-weight: 600; 
+@media (max-width: 1024px) {
+    .dashboard-columns {
+        grid-template-columns: 1fr; /* Coluna única em telas menores */
+    }
+}
+
+/* Widget Base (Dashboard) */
+.dashboard-widget {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Ocupa altura disponível na coluna do grid */
+}
+
+.widget-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #334155;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 15px;
+    flex-shrink: 0; /* Impede que o título encolha */
+}
+
+/* --- Ações Rápidas (Dashboard) --- */
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Duas colunas */
+    gap: 15px;
+    flex-grow: 1; /* Ocupa espaço vertical no widget */
+    align-content: start; /* Alinha itens no topo */
+}
+
+.quick-action-button {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    text-decoration: none;
+    padding: 25px 15px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-weight: 600;
     font-size: 0.95rem;
-    transition: all 0.2s ease-in-out; 
+    transition: all 0.2s ease-in-out;
     min-height: 120px; /* Garante altura mínima */
+    cursor: pointer; /* Adicionado cursor pointer */
 }
 
-.quick-action-button:hover { 
-    background-color: #eff6ff; 
-    border-color: #bfdbfe; 
-    color: #2563eb; 
-    transform: translateY(-3px); 
+.quick-action-button:hover {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+    color: #2563eb;
+    transform: translateY(-3px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
-.quick-action-button i { 
-    font-size: 1.75rem; 
-    margin-bottom: 12px; 
-    color: #3b82f6; 
+.quick-action-button i {
+    font-size: 1.75rem;
+    margin-bottom: 12px;
+    color: #3b82f6;
     transition: color 0.2s ease-in-out;
 }
 .quick-action-button:hover i {
-    color: #2563eb; 
+    color: #2563eb;
 }
 
-.anuncios-list { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 20px; 
-    flex-grow: 1; 
-    min-height: 0; 
+/* --- Lista de Anúncios (Dashboard) --- */
+/* Widget específico para anúncios */
+.anuncios-widget {
+  /* Pode herdar de .dashboard-widget */
+}
+
+.anuncios-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex-grow: 1; /* Ocupa espaço */
+    min-height: 0; /* Necessário para overflow funcionar com flex */
     max-height: 360px; /* ALTURA MÁXIMA DEFINIDA */
     overflow-y: auto; /* SCROLL SE NECESSÁRIO */
-    scrollbar-width: thin; 
-    scrollbar-color: #cbd5e1 #f8fafc; 
-    padding-right: 5px; 
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: #cbd5e1 #f8fafc; /* Firefox */
+    padding-right: 5px; /* Espaço para a scrollbar */
 }
+/* Scrollbar para Webkit (Chrome, Safari) */
 .anuncios-list::-webkit-scrollbar { width: 6px; }
 .anuncios-list::-webkit-scrollbar-track { background: #f8fafc; border-radius: 3px; }
 .anuncios-list::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; border: 1px solid #f8fafc; }
 
-
-/* Item de Anúncio */
+/* Item de Anúncio (Dashboard) */
 .anuncio-item {
-    border-bottom: 1px solid #f1f5f9; 
+    border-bottom: 1px solid #f1f5f9;
     padding-bottom: 20px;
-    flex-shrink: 0; 
+    flex-shrink: 0; /* Impede que itens encolham demais */
 }
-.anuncio-item:last-child { 
-    border-bottom: none; 
+.anuncio-item:last-child {
+    border-bottom: none;
     padding-bottom: 0;
-    margin-bottom: 0; 
+    margin-bottom: 0;
 }
 
 .anuncio-header {
     display: flex;
     align-items: center;
-    flex-wrap: wrap; 
-    gap: 8px 10px; 
+    flex-wrap: wrap; /* Quebra tags se necessário */
+    gap: 8px 10px; /* Espaçamento entre tags e título */
     margin-bottom: 10px;
 }
 
 .anuncio-tag {
-    font-size: 0.7rem; 
+    font-size: 0.7rem;
     font-weight: 700;
     padding: 3px 8px;
-    border-radius: 12px; 
+    border-radius: 12px;
     color: #ffffff;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    white-space: nowrap; 
+    white-space: nowrap; /* Impede que a tag quebre linha */
 }
 
-.anuncio-titulo { 
-    margin: 0 0 8px 0; 
+.anuncio-titulo {
+    margin: 0 0 8px 0;
     font-size: 1rem;
     font-weight: 600;
-    color: #334155; 
+    color: #334155;
 }
 
-.anuncio-conteudo { 
-    margin: 0 0 12px 0; 
-    color: #475569; 
-    font-size: 0.9rem; 
-    line-height: 1.6; 
-    white-space: pre-wrap; 
-    word-wrap: break-word; 
-    overflow-wrap: break-word;
+.anuncio-conteudo {
+    margin: 0 0 12px 0;
+    color: #475569;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    white-space: pre-wrap; /* Mantém quebras de linha */
+    word-wrap: break-word; /* Quebra palavras longas */
+    overflow-wrap: break-word; /* Garante quebra */
 }
 
 .anuncio-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap; 
+    flex-wrap: wrap; /* Quebra se necessário */
     gap: 5px 10px;
     font-size: 0.8rem;
-    color: #94a3b8; 
+    color: #94a3b8; /* Cinza mais claro */
 }
 .anuncio-footer span strong {
-    color: #64748b; 
-    font-weight: 500; 
+    color: #64748b; /* Cinza médio */
+    font-weight: 500;
 }
 
-
-/* --- Estados (Carregando, Vazio) --- */
+/* --- Estados (Carregando, Vazio - Dashboard) --- */
 .loading-text,
-.empty-state { 
-    text-align: center; 
-    color: #94a3b8; 
-    padding: 40px 20px; 
+.empty-state {
+    text-align: center;
+    color: #94a3b8;
+    padding: 40px 20px;
     font-size: 0.95rem;
-    min-height: 100px; 
+    min-height: 100px; /* Altura mínima para ocupar espaço */
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-grow: 1; 
+    flex-grow: 1; /* Ocupa espaço vertical no widget */
 }
 
 /* --- Animação --- */
-@keyframes fadeIn { 
-    from { opacity: 0; transform: translateY(10px); } 
-    to { opacity: 1; transform: translateY(0); } 
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- ESTILOS ADICIONAIS PARA SIDEBAR (se precisar colocar aqui) --- */
+/* Exemplo de estilos para os botões da sidebar, caso não estejam em outro CSS */
+/* (Estes podem estar no componente PainelPoliciaSidebar.jsx ou em um CSS global se preferir) */
+.sidebar-header {
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid #374151; /* Linha divisória */
+}
+.sidebar-header h3 {
+  margin: 0 0 5px 0;
+  font-size: 1.5rem;
+  color: #ffffff;
+}
+.sidebar-header span {
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.sidebar-nav {
+  padding: 15px;
+  flex-grow: 1; /* Ocupa espaço vertical */
+  overflow-y: auto; /* Adiciona scroll se necessário */
+}
+
+.sidebar-nav button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 15px; /* Aumenta padding */
+    background: none;
+    border: none;
+    color: #d1d5db; /* Cor texto normal */
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.95rem; /* Aumenta fonte */
+    border-radius: 6px;
+    margin-bottom: 8px; /* Aumenta espaço */
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-nav button:hover {
+    background-color: #374151; /* Fundo hover */
+    color: #ffffff; /* Texto hover */
+}
+
+.sidebar-nav button.active {
+    background-color: #4f46e5; /* Cor de fundo ativa (indigo) */
+    color: #ffffff; /* Cor texto ativa */
+    font-weight: 600;
+}
+
+.sidebar-nav button i {
+    margin-right: 12px; /* Aumenta espaço do ícone */
+    width: 20px;
+    text-align: center;
+    font-size: 1rem; /* Tamanho do ícone */
+}
+
+.sidebar-footer {
+  padding: 15px;
+  border-top: 1px solid #374151;
+  margin-top: auto; /* Empurra para baixo */
+}
+
+.sidebar-profile-vertical {
+  display: flex;
+  align-items: center;
+  background-color: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  width: 100%;
+  text-align: left;
+  color: #e5e7eb;
+  cursor: pointer;
+  margin-bottom: 15px;
+  transition: background-color 0.2s;
+}
+.sidebar-profile-vertical:hover {
+  background-color: #374151;
+}
+
+.profile-avatar-large {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #4f46e5; /* Fundo do avatar */
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+/* Se usar imagem:
+.profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+*/
+
+.profile-info-vertical {
+  overflow: hidden; /* Evita que texto vaze */
+}
+.profile-info-vertical span {
+  display: block;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Adiciona "..." se nome for longo */
+}
+.profile-info-vertical small {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centraliza ícone e texto */
+  width: 100%;
+  padding: 10px 15px;
+  margin-top: 10px;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.sidebar-btn i {
+  margin-right: 8px;
+}
+
+.bug-report-button {
+  background-color: #ca8a04; /* Amarelo escuro */
+  color: white;
+}
+.bug-report-button:hover {
+  background-color: #a16207;
+}
+
+.logout-button {
+  background-color: #dc2626; /* Vermelho */
+  color: white;
+}
+.logout-button:hover {
+  background-color: #b91c1c;
 }

@@ -1,2 +1,107 @@
-429: Too Many Requests
-For more on scraping GitHub and how it may affect your rights, please review our Terms of Service (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service).
+/* src/components/GerenciarPolicialModal.css - VERSÃO FINAL (COM BUSCA "BONITONA") */
+
+/* --- ✅ CORREÇÃO DA BARRA DE BUSCA --- */
+.search-bar-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* Estilo para o CAMPO de input */
+.search-bar-container input {
+    flex-grow: 1; /* Ocupa o espaço */
+    
+    /* Pega o estilo do seu Modal.css */
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background-color: #fff;
+    color: #1e293b;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+/* Efeito de foco (borda azul) */
+.search-bar-container input:focus {
+    outline: none;
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+}
+
+/* Estilo para o BOTÃO de buscar */
+.search-bar-container button {
+    flex-shrink: 0; /* Não encolhe */
+    
+    /* Pega o estilo .btn-primary do seu Modal.css */
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    background-color: #0d6efd;
+    color: white;
+    border: 1px solid #0d6efd;
+    transition: background-color 0.2s;
+}
+.search-bar-container button:hover {
+    background-color: #0b5ed7;
+}
+.search-bar-container button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+/* --- FIM DA CORREÇÃO --- */
+
+
+/* --- Lista de Resultados (O "Card Azul" - Inalterado) --- */
+.search-results-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.search-result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #0d6efd; /* Fundo azul */
+    color: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+}
+.search-result-item + .search-result-item {
+    margin-top: 10px;
+}
+.search-result-item .info {
+    line-height: 1.4;
+}
+.search-result-item .info strong {
+    font-size: 1.1rem;
+    color: #fff;
+    display: block;
+    font-weight: 700;
+}
+.search-result-item .info small {
+    font-size: 0.9rem;
+    color: #e0e0e0;
+    opacity: 0.9;
+}
+.search-result-item .btn-edit {
+    width: auto;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 8px 20px;
+    background-color: #fff;
+    color: #0d6efd;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+.search-result-item .btn-edit:hover {
+    background-color: #f0f0f0;
+}

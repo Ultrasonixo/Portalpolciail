@@ -1,2 +1,272 @@
-429: Too Many Requests
-For more on scraping GitHub and how it may affect your rights, please review our Terms of Service (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service).
+/* src/components/PoliceProfilePage.css - VERSÃO CORRIGIDA E ALINHADA */
+
+.page-container {
+    padding: 20px;
+}
+
+.profile-grid {
+    display: grid;
+    /* Coluna do Perfil (340px) | Coluna da Timeline (resto) */
+    grid-template-columns: 340px 1fr;
+    gap: 30px;
+}
+
+/* --- Card do Perfil (Esquerda) --- */
+.profile-card {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    text-align: center;
+    align-self: start; /* Impede que o card estique */
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid #fff;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    background-color: #f0f0f0;
+}
+
+.profile-card h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.5rem;
+    color: #334155;
+}
+
+.profile-passaporte {
+    color: #64748b;
+    margin-top: 0;
+    margin-bottom: 25px;
+    font-size: 0.95rem;
+}
+
+/* --- O ALINHAMENTO É CORRIGIDO AQUI --- */
+.profile-info-grid {
+    display: grid;
+    /* Coluna do Label | Coluna do Valor */
+    grid-template-columns: auto 1fr;
+    gap: 15px;
+    text-align: left; /* Alinha todo o texto à esquerda */
+    font-size: 0.9rem;
+}
+
+.profile-info-grid strong {
+    color: #64748b; /* Label (Patente, Divisão) */
+    font-weight: 600;
+}
+
+.profile-info-grid span {
+    color: #334155; /* Valor (Agente, PC) */
+    font-weight: 500;
+    word-break: break-all; /* Quebra o texto se for grande */
+}
+
+/* --- MELHORIA DO "APROVADO" --- */
+.status-pill {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    justify-self: start; /* Faz o background não esticar */
+}
+.status-pill.status-aprovado {
+    background-color: #198754; /* Verde */
+    color: #fff;
+}
+.status-pill.status-pendente {
+    background-color: #ffc107; /* Amarelo */
+    color: #333;
+}
+.status-pill.status-reprovado {
+    background-color: #dc3545; /* Vermelho */
+    color: #fff;
+}
+/* --- FIM DA MELHORIA --- */
+
+
+.btn-edit-profile {
+    margin-top: 20px;
+    display: inline-block;
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.btn-edit-profile:hover {
+    text-decoration: underline;
+}
+
+/* --- Widget da Timeline (Direita) --- */
+.content-widget {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    overflow: hidden; /* Garante que o header se junte ao body */
+}
+
+.widget-title {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #334155;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 25px 30px;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid #fff;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    background-color: #f0f0f0;
+
+    /* ✅ ADICIONE ESTAS 3 LINHAS PARA CENTRALIZAR O ÍCONE */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.photo-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000; /* Fica em cima de tudo */
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.3s ease;
+}
+
+.photo-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    font-size: 3rem;
+    color: #fff;
+    background: none;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.photo-modal-content {
+    /* Define o tamanho da foto redonda grande */
+    width: 60vh;  /* 60% da altura da tela */
+    height: 60vh; /* 60% da altura da tela */
+    max-width: 500px;
+    max-height: 500px;
+    border-radius: 50%; /* A "foto redonda" que você pediu */
+    overflow: hidden;
+    border: 4px solid #fff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.photo-modal-content img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Garante que a imagem preencha o círculo */
+}
+
+/* Animação de fade-in (opcional, mas elegante) */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Em src/components/PoliceProfilePage.css (SUBSTITUA O BLOCO NO FINAL DO ARQUIVO) */
+
+/* --- Modal de Visualização de Foto (Redondo e Menor) --- */
+.photo-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.3s ease;
+}
+
+.photo-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    font-size: 3rem;
+    color: #fff;
+    background: none;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+}
+
+/* ✅ AQUI ESTÁ A MUDANÇA (Redondo e Menor) */
+.photo-modal-content {
+    /* Define um tamanho um pouco menor (50vh) */
+    width: 50vh;  /* 50% da altura da tela */
+    height: 50vh; /* 50% da altura da tela */
+
+    /* Garante que não fique muito grande ou muito pequeno */
+    max-width: 400px;  /* Tamanho máximo */
+    max-height: 400px;
+    min-width: 250px;   /* Tamanho mínimo */
+    min-height: 250px;
+
+    /* ✅ VOLTA A SER REDONDO */
+    border-radius: 50%; 
+    overflow: hidden;
+    border: 4px solid #fff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+
+    animation: zoomIn 0.3s ease;
+}
+
+.photo-modal-content img {
+    width: 100%;
+    height: 100%;
+    /* ✅ Preenche o círculo (cortando as bordas se necessário) */
+    object-fit: cover; 
+    display: block;
+}
+/* --- FIM DA CORREÇÃO --- */
+
+
+/* Animação de fade-in (para o fundo) */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Animação de zoom-in (para a foto) */
+@keyframes zoomIn {
+    from { 
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to { 
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.content-widget .timeline-container { /* Assumindo que seu Timeline.jsx tem essa classe */
+    padding: 30px;
+}

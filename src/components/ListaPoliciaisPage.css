@@ -1,2 +1,99 @@
-429: Too Many Requests
-For more on scraping GitHub and how it may affect your rights, please review our Terms of Service (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service).
+/* src/pages/ListaPoliciaisPage.css - VERSÃO ATUALIZADA COM GRID DE CARDS */
+
+/* Estilos gerais da página (título, subtítulo) */
+.page-container {
+    padding: 20px;
+}
+
+.page-title {
+    font-size: 2rem;
+    color: #334155;
+    margin-bottom: 5px;
+}
+
+.page-subtitle {
+    font-size: 1rem;
+    color: #64748b;
+    margin-top: 0;
+    margin-bottom: 30px;
+}
+
+/* ✅ A NOVA ESTRUTURA EM GRID */
+.policiais-grid {
+    display: grid;
+    /* Cria colunas responsivas: no mínimo 180px de largura, preenchendo o espaço */
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 25px; /* Espaçamento entre os cards */
+}
+
+/* ✅ O ESTILO DO CARD DE CADA POLICIAL */
+.policial-card-link {
+    text-decoration: none; /* Remove o sublinhado do link */
+    color: inherit; /* Herda a cor do texto normal */
+}
+
+.policial-card {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.policial-card:hover {
+    transform: translateY(-5px); /* Efeito de "levantar" o card */
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+/* ✅ O ÍCONE PADRÃO (SUBSTITUTO DO AVATAR) */
+.policial-avatar {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 15px auto;
+    border-radius: 50%; /* Deixa o fundo circular */
+    background-color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.policial-avatar i {
+    font-size: 2.5rem; /* Tamanho do ícone de escudo */
+    color: #94a3b8; /* Cor do ícone */
+}
+
+/* Informações do policial no card */
+.policial-info {
+    margin-top: 10px;
+}
+
+.policial-nome {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #334155;
+    margin: 0;
+}
+
+.policial-patente {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 5px 0 0 0;
+}
+
+.policial-guarnicao {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin: 5px 0 0 0;
+    font-style: italic;
+}
+
+/* Mensagens de erro ou carregamento */
+.error-message {
+    color: #dc3545;
+    text-align: center;
+    font-weight: 500;
+}
