@@ -62,7 +62,7 @@ const LoginPolicial = () => {
         const toastId = toast.loading("Verificando credenciais...");
 
         try {
-            const response = await fetch('http://localhost:3000/api/policia/login', {
+            const response = await fetch('api/policia/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

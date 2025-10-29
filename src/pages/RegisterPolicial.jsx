@@ -61,7 +61,7 @@ const RegisterPolicial = () => {
         const toastId = toast.loading("Enviando alistamento..."); // Inicia toast de loading
 
         try {
-            const response = await fetch('https://cnopol.vertexsystem.com.br/api/policia/register', { // Use a URL correta
+            const response = await fetch('/api/policia/register', { // Use a URL correta
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...formData, recaptchaToken }),

@@ -179,6 +179,8 @@ async function verifyRecaptcha(token, remoteIp) {
         return { success: false, message: 'Erro interno ao comunicar com o reCAPTCHA.' };
     }
 }
+
+// 💥 [CORREÇÃO CRUCIAL] LÓGICA DE AUTENTICAÇÃO E INICIALIZAÇÃO (ID 1)
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -189,16 +191,43 @@ const authenticateToken = (req, res, next) => {
             return next();
         }
         const { id: userId } = decodedPayload;
-        const db = getDbConnection(req); // <-- [CORREÇÃO] Usa a função
+        const db = getDbConnection(req);
         try {
             let user = null;
             let userType = null;
+            
+            // 1. TENTA BUSCAR NA TABELA DE POLICIAIS (usuariospoliciais)
             const [pRes] = await db.query('SELECT id, nome_completo, passaporte, patente, corporacao, divisao, permissoes, status FROM usuariospoliciais WHERE id = ?', [userId]);
+            
             if (pRes.length > 0 && pRes[0].status === 'Aprovado') {
                 user = pRes[0];
                 userType = 'policial';
                 try { user.permissoes = user.permissoes ? JSON.parse(user.permissoes) : {}; } catch (e) { user.permissoes = {}; }
+                
+                // 💥 LÓGICA DE INICIALIZAÇÃO: O PRIMEIRO POLICIAL (ID 1)
+                // Se for o ID 1 e não tiver as permissões de staff e rh, aplica-as.
+                if (user.id === 1 && (!user.permissoes.is_staff || !user.permissoes.is_rh || !user.permissoes.is_dev)) {
+                    console.log(`[INIT] Aplicando permissão Staff/RH/Dev ao Policial ID ${user.id} (Primeiro login).`);
+                    
+                    const newPermissoes = { 
+                        is_staff: true, 
+                        is_rh: true, 
+                        is_dev: true, 
+                        ...user.permissoes // Mantém outras permissões se existirem
+                    };
+                    
+                    const newPermissoesJson = JSON.stringify(newPermissoes);
+                    
+                    await db.query("UPDATE usuariospoliciais SET permissoes = ? WHERE id = 1", [newPermissoesJson]);
+                    
+                    // Atualiza o objeto do usuário na requisição
+                    user.permissoes = newPermissoes;
+                }
+                
+                // ⚠️ SE FOR POLICIAL APROVADO, ele é o usuário.
             } else {
+                // 2. TENTA BUSCAR NA TABELA DE CIDADÃOS (SOMENTE SE NÃO FOR POLICIAL)
+                // Se o token for de um civil, o Staff/RH NÃO conseguirá fazer login, o que é o objetivo.
                 const [cRes] = await db.query('SELECT id, nome_completo, id_passaporte, cargo FROM usuarios WHERE id = ?', [userId]);
                 if (cRes.length > 0) {
                     user = cRes[0];
@@ -207,8 +236,10 @@ const authenticateToken = (req, res, next) => {
                     user.permissoes = {};
                 }
             }
+            
             if (user) req.user = { ...user, type: userType };
             return next();
+            
         } catch (dbErr) {
             console.error(`[Auth] Erro DB ao buscar usuário do token (ID: ${userId}):`, dbErr);
             return res.status(500).json({ message: 'Erro interno do servidor durante a autenticação.' });
@@ -216,11 +247,21 @@ const authenticateToken = (req, res, next) => {
     });
 };
 app.use(authenticateToken);
+
 const requireAuth = (type) => (req, res, next) => {
     if (!req.user) return res.status(401).json({ message: 'Acesso negado. Token é necessário.' });
+    
+    // Se o usuário é Staff ou RH, permite acesso total, ignorando a restrição de 'type'.
+    // Isso garante que o RH/Staff Policial (type: 'policial') consiga acessar rotas civis e policiais.
+    if (req.user.permissoes?.is_rh || req.user.permissoes?.is_staff) {
+        return next();
+    }
+    
     if (type && req.user.type !== type) return res.status(403).json({ message: `Acesso negado. Apenas para ${type}s.` });
+    
     next();
 };
+
 const checkRh = (req, res, next) => {
     if (req.user?.type === 'policial' && req.user.permissoes?.is_rh === true) next();
     else res.status(403).json({ message: 'Acesso negado. Apenas para administradores RH.' });
@@ -249,12 +290,13 @@ const checkDev = (req, res, next) => {
     }
 };
 
-// --- [NOVO] MIDDLEWARE COMBINADO PARA LOGS ---
-const checkRhOrStaff = (req, res, next) => {
+// --- [NOVO] MIDDLEWARE COMBINADO PARA RH/LOGS/ESTRUTURA ---
+const checkRhOrStaffOrDev = (req, res, next) => {
+     // Permite se for RH, Staff, City Admin ou Dev
      if (req.user?.type === 'policial' && (req.user.permissoes?.is_rh === true || req.user.permissoes?.is_staff === true || req.user.permissoes?.is_city_admin === true || req.user.permissoes?.is_dev === true)) {
         next();
     } else {
-        res.status(403).json({ message: 'Acesso negado. Apenas para RH ou Staff.' });
+        res.status(403).json({ message: 'Acesso negado. Apenas para RH, Staff ou Desenvolvedor.' });
     }
 };
 
@@ -439,6 +481,7 @@ app.post('/api/policia/login', async (req, res) => {
     const { passaporte, senha } = req.body; //
     if (!passaporte || !senha) return res.status(400).json({ message: 'Passaporte e senha são obrigatórios.' }); //
     try {
+        // ⚠️ [FOCO] Policiais (Staff/RH) devem sempre usar este login
         const [results] = await db.query('SELECT id, passaporte, nome_completo, senha_hash, status, patente, corporacao, divisao, permissoes FROM usuariospoliciais WHERE passaporte = ?', [passaporte]); //
         if (results.length === 0) return res.status(401).json({ message: 'Credenciais inválidas.' }); // Policial não encontrado
         const policial = results[0]; //
@@ -465,18 +508,26 @@ app.post('/api/admin/generate-token', checkRh, async (req, res) => {
     const db = getDbConnection(req); // <-- [CORREÇÃO]
     const adminUser = req.user; //
     const ipAddress = req.ip; //
-    const { max_uses = 1, duration_hours = 24 } = req.body; //
+    const { max_uses = 1, duration_hours = 24, corporacao } = req.body; // <-- [CORRIGIDO] Recebe corporação do corpo
+    const corpTarget = corporacao || adminUser.corporacao; // Usa a corporação passada ou a do Admin logado
+
     const maxUsesInt = parseInt(max_uses, 10); //
     const durationHoursInt = parseInt(duration_hours, 10); //
     if (isNaN(maxUsesInt) || maxUsesInt < 1 || isNaN(durationHoursInt) || durationHoursInt <= 0) return res.status(400).json({ message: "Quantidade de usos ou duração inválida." }); //
-    if (!adminUser?.corporacao) return res.status(400).json({ message: "Administrador sem corporação definida." }); //
+    
+    // [CORRIGIDO] Se o RH é de uma corporação específica, ele só pode gerar tokens para ela
+    if (adminUser?.corporacao && corpTarget !== adminUser.corporacao) {
+         return res.status(403).json({ message: `Administrador RH só pode gerar tokens para sua corporação (${adminUser.corporacao}).` });
+    }
+    if (!corpTarget) return res.status(400).json({ message: "Corporação para o token não definida." }); //
+
     const newToken = crypto.randomBytes(32).toString('hex'); //
     const now = new Date(); //
     const expiresAt = new Date(now.getTime() + durationHoursInt * 60 * 60 * 1000); //
     try {
         const insertSql = `INSERT INTO registration_tokens (token, corporacao, created_by_admin_id, expires_at, max_uses, is_active) VALUES (?, ?, ?, ?, ?, TRUE)`; //
-        await db.query(insertSql, [newToken, adminUser.corporacao, adminUser.id, expiresAt, maxUsesInt]); //
-        const logDetails = { uses: maxUsesInt, duration: durationHoursInt, corp: adminUser.corporacao, tokenStart: newToken.substring(0, 8) }; //
+        await db.query(insertSql, [newToken, corpTarget, adminUser.id, expiresAt, maxUsesInt]); //
+        const logDetails = { uses: maxUsesInt, duration: durationHoursInt, corp: corpTarget, tokenStart: newToken.substring(0, 8) }; //
         await logAdminAction(adminUser.id, 'Generate Registration Token', logDetails, ipAddress); //
         res.status(201).json({ message: `Token gerado! Válido por ${durationHoursInt}h para ${maxUsesInt} uso(s).`, token: newToken }); //
     } catch (err) { console.error(`Erro ao inserir token de registro (IP: ${ipAddress}):`, err); res.status(500).json({ message: "Erro interno ao gerar token." }); } //
@@ -610,7 +661,7 @@ app.put('/api/admin/gerenciar-policial', checkRh, async (req, res) => { // Rota 
 app.get('/api/admin/lista-oficiais', checkRh, async (req, res) => {
     const db = getDbConnection(req); // <-- [CORREÇÃO]
     const adminCorporacao = req.user.corporacao; //
-    if (!adminCorporacao) return res.status(400).json({ message: 'Administrador sem corporação definida.' }); //
+    if (!adminCorporacao) return res.status(400).json({ message: "Administrador sem corporação definida." }); //
     try {
         // Retorna apenas policiais APROVADOS da mesma corporação
         const [results] = await db.query("SELECT id, nome_completo, patente FROM usuariospoliciais WHERE status = 'Aprovado' AND corporacao = ? ORDER BY nome_completo ASC", [adminCorporacao]); //
@@ -633,8 +684,15 @@ app.post('/api/admin/anuncios', checkRh, async (req, res) => {
     }
 
     // --- Validação do valor de 'corporacao' (Opcional, mas recomendado) ---
-    // Defina aqui as siglas válidas para as corporações específicas
-    const VALID_CORPORATIONS = ['PM', 'PC', 'GCM']; // Adicione outras se houver
+    // Busca as siglas válidas da tabela corporacoes para usar na validação
+    let VALID_CORPORATIONS = [];
+    try {
+        const [corpRes] = await db.query("SELECT sigla FROM corporacoes");
+        VALID_CORPORATIONS = corpRes.map(c => c.sigla);
+    } catch (dbErr) {
+        console.warn("Não foi possível carregar as siglas de corporação para validação de anúncio. Usando fallback PM/PC/GCM.");
+        VALID_CORPORATIONS = ['PM', 'PC', 'GCM'];
+    }
 
     let targetCorporacao = corporacao; // Variável para armazenar o valor final
 
@@ -701,11 +759,11 @@ app.put('/api/admin/demitir/:id', checkRh, async (req, res) => {
         await logAdminAction(adminUser.id, 'Dismiss Policial', logDetails, ipAddress); //
 
         res.status(200).json({ message: `Policial ${targetUser.nome_completo} foi demitido com sucesso.` }); //
-    } catch (err) { console.error(`Erro ao demitir policial ${targetId} (IP: ${ipAddress}):`, err); res.status(500).json({ message: "Erro interno do servidor ao tentar demitir policial." }); } //
+    } catch (err) { console.error(`Erro ao demitir policial ${targetId} (IP: ${ipAddress}):`, err); res.status(500).json({ message: "Erro interno ao tentar demitir policial." }); } //
 });
 
-// --- [ATUALIZADO] Rota de Logs agora usa checkRhOrStaff ---
-app.get('/api/admin/logs', checkRhOrStaff, async (req, res) => {
+// --- [ATUALIZADO] Rota de Logs agora usa checkRhOrStaffOrDev ---
+app.get('/api/admin/logs', checkRhOrStaffOrDev, async (req, res) => { // <-- CORREÇÃO APLICADA AQUI!
     const db = getDbConnection(req); // <-- [CORREÇÃO]
     const { page = 1, limit = 15, text = '', action = '', date = '' } = req.query; //
     const offset = (parseInt(page) - 1) * parseInt(limit); //
@@ -724,6 +782,7 @@ app.get('/api/admin/logs', checkRhOrStaff, async (req, res) => {
 
         // Filtra por corporação se o admin NÃO for Staff/Dev E NÃO for RH Geral
         if (!canViewAll) {
+            // Regra: Vê ações da própria corporação OU Bug Reports OU Logs onde o detalhe menciona a corporação
             whereClauses.push('(u.corporacao = ? OR l.acao = "Bug Report" OR l.detalhes LIKE ?)'); //
             params.push(adminCorporacao, `%"corp":"${adminCorporacao}"%`); //
             console.log(`[Logs] Acesso restrito para RH da corporação: ${adminCorporacao} (User: ${adminUser.id})`);
@@ -1152,59 +1211,95 @@ app.delete('/api/admin/concursos/:id', checkRh, async (req, res) => {
 
 // Rota para buscar usuários GLOBAIS (Policiais E Civis)
 app.post('/api/staff/search-users', checkStaff, async (req, res) => {
-    const db = getDbConnection(req); // <-- [CORREÇÃO]
+    const db = getDbConnection(req);
     const { searchQuery, searchType } = req.body;
-    const ipAddress = req.ip;
     const adminUser = req.user;
+    const ipAddress = req.ip;
 
-    if (!searchQuery || searchQuery.length < 2) {
-        return res.status(400).json({ message: "Termo de busca deve ter pelo menos 2 caracteres." });
-    }
+    const queryTerm = searchQuery ? `%${searchQuery}%` : null;
+    const hasSearchTerm = queryTerm !== null;
     
-    const searchTerm = `%${searchQuery}%`;
-    let queryParams = [];
-    let policeQuery = '';
-    let civilQuery = '';
+    let queryParts = []; // Armazena os trechos SQL para UNION ALL
+    let queryParams = []; // Armazena os parâmetros para as consultas
 
     try {
-        // Query para Policiais
+        // --- 1. Query para Policiais (usuariospoliciais) ---
         if (searchType === 'Todos' || searchType === 'Policial') {
-            policeQuery = `
-                (SELECT id, nome_completo, passaporte, status, corporacao, 'Policial' as tipo
+            let policeWhere = [];
+            let policeParams = [];
+
+            // Apenas aplica o filtro LIKE se houver um termo de busca
+            if (hasSearchTerm) {
+                policeWhere.push('(nome_completo LIKE ? OR CAST(passaporte AS CHAR) LIKE ?)');
+                policeParams.push(queryTerm, queryTerm);
+            }
+            
+            const policeWhereString = policeWhere.length > 0 ? `WHERE ${policeWhere.join(' AND ')}` : '';
+
+            const policeSelect = `
+                (SELECT 
+                    id, 
+                    nome_completo, 
+                    passaporte, 
+                    status, 
+                    corporacao, 
+                    'Policial' as tipo
                 FROM usuariospoliciais
-                WHERE (nome_completo LIKE ? OR CAST(passaporte AS CHAR) LIKE ?))
+                ${policeWhereString})
             `;
-            queryParams.push(searchTerm, searchTerm);
+            queryParts.push(policeSelect);
+            queryParams.push(...policeParams);
         }
 
-        // Query para Civis
+        // --- 2. Query para Civis (usuarios) ---
         if (searchType === 'Todos' || searchType === 'Civil') {
-            civilQuery = `
-                (SELECT id, nome_completo, id_passaporte as passaporte, 'Ativo' as status, null as corporacao, 'Civil' as tipo
+            let civilWhere = [];
+            let civilParams = [];
+            
+            // Apenas aplica o filtro LIKE se houver um termo de busca
+            if (hasSearchTerm) {
+                civilWhere.push('(nome_completo LIKE ? OR CAST(id_passaporte AS CHAR) LIKE ?)');
+                civilParams.push(queryTerm, queryTerm);
+            }
+
+            const civilWhereString = civilWhere.length > 0 ? `WHERE ${civilWhere.join(' AND ')}` : '';
+            
+            // ESSENCIAL: Padronizar colunas de saída
+            const civilSelect = `
+                (SELECT 
+                    id, 
+                    nome_completo, 
+                    id_passaporte as passaporte, 
+                    'Ativo' as status,      /* Status Padrão para Civil */
+                    NULL as corporacao,     /* Corporação é NULL para Civis */
+                    'Civil' as tipo
                 FROM usuarios
-                WHERE (nome_completo LIKE ? OR CAST(id_passaporte AS CHAR) LIKE ?))
+                ${civilWhereString})
             `;
-             queryParams.push(searchTerm, searchTerm);
+            queryParts.push(civilSelect);
+            queryParams.push(...civilParams);
         }
         
-        let combinedSql = '';
-        if (policeQuery && civilQuery) {
-            combinedSql = `${policeQuery} UNION ALL ${civilQuery} LIMIT 50`;
-        } else if (policeQuery) {
-            combinedSql = `${policeQuery} LIMIT 50`;
-        } else if (civilQuery) {
-            combinedSql = `${civilQuery} LIMIT 50`;
-        } else {
-            return res.status(400).json({ message: "Tipo de busca inválido." });
+        if (queryParts.length === 0) {
+            // Isso só deve acontecer se searchType for inválido
+            return res.status(200).json({ users: [] }); 
         }
 
+        // --- 4. Constrói a Query Final ---
+        combinedSql = queryParts.join(' UNION ALL ');
+        combinedSql += ' ORDER BY nome_completo ASC LIMIT 50'; 
+
+        // Executa a Query Combinada
         const [users] = await db.query(combinedSql, queryParams);
 
+        // Ação de Log
         await logAdminAction(adminUser.id, 'Staff Search Users', { query: searchQuery, type: searchType, results: users.length }, ipAddress);
+        
         res.status(200).json({ users });
 
     } catch (err) {
         console.error(`[Staff Search] Erro ao buscar usuários (IP: ${ipAddress}):`, err);
+        // Em caso de erro, retorna a mensagem
         res.status(500).json({ message: "Erro interno ao buscar usuários." });
     }
 });
@@ -1249,9 +1344,9 @@ app.post('/api/staff/generate-global-token', checkStaff, async (req, res) => {
 
 // --- [INÍCIO] ROTAS DE ESTRUTURA (DEPARTAMENTOS E HIERARQUIA) ---
 
-// [ATUALIZADO] Rota para buscar a estrutura (AGORA BUSCA DO DB)
-app.get('/api/staff/structure', checkStaff, async (req, res) => {
-    const db = getDbConnection(req); // <-- [CORREÇÃO] Pega a conexão
+// [ATUALIZADO] Rota para buscar a estrutura (AGORA USA checkRhOrStaffOrDev)
+app.get('/api/staff/structure', checkRhOrStaffOrDev, async (req, res) => { // <-- CORREÇÃO APLICADA AQUI!
+    const db = getDbConnection(req); // Pega a conexão
     try {
         // Busca os dados reais das novas tabelas
         const [corporacoes] = await db.query("SELECT * FROM corporacoes ORDER BY nome ASC");
@@ -1275,7 +1370,7 @@ app.get('/api/staff/structure', checkStaff, async (req, res) => {
     }
 });
 
-// [NOVO] CRUD para Corporações
+// [NOVO] CRUD para Corporações (MANTÉM checkStaff, pois é função de staff/dev)
 app.post('/api/staff/corporacoes', checkStaff, async (req, res) => {
     const db = getDbConnection(req); // <-- [CORREÇÃO] Pega a conexão
     const { nome, sigla } = req.body;
@@ -1466,7 +1561,6 @@ app.put('/api/staff/portal-settings', checkStaff, uploadImagem.single('header_lo
 });
 
 // --- [FIM] ROTAS DO PAINEL STAFF ---
-
 
 // --- ROTAS POLICIAIS GERAIS (protegidas com checkIsPoliceAuthenticated) ---
 app.get('/api/policia/dashboard-stats', checkIsPoliceAuthenticated, async (req, res) => {
@@ -2145,4 +2239,3 @@ app.listen(PORT, () => {
     console.log(`* Limite de Requisições: ${limiterConfig.max} reqs / ${limiterConfig.windowMs / 60000} min por IP *`); //
     console.log(`****************************************************`);
 });
-

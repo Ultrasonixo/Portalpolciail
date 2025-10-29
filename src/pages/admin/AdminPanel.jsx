@@ -165,17 +165,25 @@ const ManageUsersView = () => {
     const [searchType, setSearchType] = useState('Todos'); // 'Todos', 'Civil', 'Policial'
     const [searchResults, setSearchResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    // Estado para controlar se a busca inicial já foi feita
+    const [initialSearchDone, setInitialSearchDone] = useState(false);
 
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        if (searchQuery.length < 2) {
-            toast.warn("Digite pelo menos 2 caracteres para buscar.");
-            return;
-        }
-        
+
+    // 💥 [CORRIGIDO] Função de busca eficiente
+    const fetchUsers = useCallback(async (query, type) => {
         setIsLoading(true);
-        setSearchResults([]);
-        const toastId = toast.loading(`Buscando por "${searchQuery}"...`);
+        setSearchResults([]); 
+        
+        // Determina se devemos emitir um aviso de 2 caracteres
+        const requiresMinLengthCheck = type !== 'Todos' && query && query.length < 2;
+
+        if (requiresMinLengthCheck) {
+             toast.warn("Digite pelo menos 2 caracteres para buscar por nome/passaporte.");
+             setIsLoading(false);
+             return;
+        }
+
+        const toastId = toast.loading(`Buscando por "${query || (type === 'Todos' ? 'todos os usuários' : type)}"...`);
 
         if (!token) {
             toast.update(toastId, { render: "Erro de autenticação", type: "error", isLoading: false, autoClose: 3000 });
@@ -184,14 +192,15 @@ const ManageUsersView = () => {
         }
 
         try {
-            // --- [CORREÇÃO] API URL Completa ---
+            // A API do back-end (server.js) agora lida com o filtro vazio ('') para o tipo selecionado
             const response = await fetch(`${API_URL}/api/staff/search-users`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ searchQuery, searchType })
+                // Passa a query final e o tipo.
+                body: JSON.stringify({ searchQuery: query, searchType: type }) 
             });
 
             if (response.status === 401 || response.status === 403) {
@@ -199,14 +208,7 @@ const ManageUsersView = () => {
                 throw new Error('Sessão inválida ou sem permissão.');
             }
             
-            let data;
-            try {
-                 data = await response.json();
-            } catch (jsonError) {
-                const textResponse = await response.text();
-                console.error("Falha ao parsear JSON. Resposta do servidor:", textResponse);
-                throw new Error("Erro de comunicação. O servidor não respondeu com JSON.");
-            }
+            let data = await response.json();
 
             if (!response.ok) {
                 throw new Error(data.message || 'Erro ao buscar usuários.');
@@ -214,10 +216,17 @@ const ManageUsersView = () => {
 
             setSearchResults(data.users || []);
             
-            if (data.users.length === 0) {
-                toast.update(toastId, { render: "Nenhum usuário encontrado.", type: "info", isLoading: false, autoClose: 3000 });
+            // 💥 [CORRIGIDO] Notificação única: Apenas exibe o toast após a primeira busca automática
+            if (initialSearchDone) { 
+                 if (data.users.length === 0) {
+                     toast.update(toastId, { render: "Nenhum usuário encontrado.", type: "info", isLoading: false, autoClose: 3000 });
+                 } else {
+                     toast.update(toastId, { render: `Encontrado(s) ${data.users.length} usuário(s).`, type: "success", isLoading: false, autoClose: 2000 });
+                 }
             } else {
-                toast.update(toastId, { render: `Encontrado(s) ${data.users.length} usuário(s).`, type: "success", isLoading: false, autoClose: 2000 });
+                 // Primeira busca (automática): Apenas esconde o loading
+                 toast.dismiss(toastId); 
+                 setInitialSearchDone(true);
             }
 
         } catch (err) {
@@ -226,8 +235,47 @@ const ManageUsersView = () => {
         } finally {
             setIsLoading(false);
         }
+    }, [token, logout, initialSearchDone]);
+
+
+    // 1. 💥 [CORREÇÃO: BUSCA AUTOMÁTICA INICIAL]
+    // Executa a busca inicial (Todos, query vazia) apenas uma vez.
+    useEffect(() => {
+        // Usa uma flag interna para garantir que só roda na primeira montagem (evita duplicidade no Strict Mode)
+        let mounted = true;
+        
+        if (!initialSearchDone && mounted) {
+             // Chamada para carregar TUDO na primeira vez.
+             fetchUsers(searchQuery, searchType);
+        }
+
+        return () => { mounted = false; };
+        
+    }, [fetchUsers]); // Depende apenas de fetchUsers para rodar na montagem.
+
+
+    // 2. 💥 [CORREÇÃO: FILTRO DE TIPO E TEXTO EM TEMPO REAL]
+    useEffect(() => {
+        // Recarrega a lista APENAS se o filtro de TIPO mudar E o campo de busca estiver vazio.
+        // Se a busca de texto tiver conteúdo, a busca só deve ocorrer no clique (handleSearchClick).
+        
+        if (!searchQuery) {
+            // Se o campo de texto está vazio, o filtro de tipo deve funcionar imediatamente
+             const delay = setTimeout(() => {
+                 fetchUsers(searchQuery, searchType);
+             }, 150); // Pequeno debounce para evitar chamadas rápidas
+             return () => clearTimeout(delay);
+        }
+        
+    }, [searchType, fetchUsers]); 
+
+
+    const handleSearchClick = (e) => {
+        e.preventDefault();
+        // Dispara a busca manual com o termo e tipo atuais (a lógica de 2 caracteres está dentro de fetchUsers)
+        fetchUsers(searchQuery, searchType);
     };
-    
+
     const handleOpenEdit = (user) => toast.info(`Abrir modal EDITAR para ${user.nome_completo} (a implementar)`);
     const handleOpenRoles = (user) => toast.info(`Abrir modal PROMOVER/REBAIXAR (Global) para ${user.nome_completo} (a implementar)`);
     const handleOpenSuspend = (user) => toast.info(`Abrir modal SUSPENDER/BANIR ${user.nome_completo} (a implementar)`);
@@ -240,14 +288,26 @@ const ManageUsersView = () => {
                 <p className="text-slate-600 text-lg">Controle total sobre contas policiais e civis.</p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200 mb-8">
-                <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <form onSubmit={handleSearchClick} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     <div className="md:col-span-1">
                         <label htmlFor="searchQuery" className="block text-sm font-medium text-slate-700 mb-1">Buscar (Nome ou Passaporte)</label>
-                        <input type="text" id="searchQuery" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Digite o nome ou passaporte..." className="w-full px-4 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                        <input 
+                            type="text" 
+                            id="searchQuery" 
+                            value={searchQuery} 
+                            onChange={(e) => setSearchQuery(e.target.value)} 
+                            placeholder="Digite o nome ou passaporte..." 
+                            className="w-full px-4 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
                     </div>
                     <div>
                         <label htmlFor="searchType" className="block text-sm font-medium text-slate-700 mb-1">Tipo de Usuário</label>
-                        <select id="searchType" value={searchType} onChange={(e) => setSearchType(e.target.value)} className="w-full px-4 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                        <select 
+                            id="searchType" 
+                            value={searchType} 
+                            onChange={(e) => setSearchType(e.target.value)} 
+                            className="w-full px-4 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                        >
                             <option value="Todos">Todos</option>
                             <option value="Policial">Apenas Policiais</option>
                             <option value="Civil">Apenas Civis</option>
@@ -279,6 +339,7 @@ const ManageUsersView = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{user.passaporte}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                         {user.tipo}
+                                        {/* A corporação só existe para policiais, para civis é nulo ou undefined */}
                                         {user.corporacao && <span className="ml-2 text-xs font-semibold text-indigo-700">({user.corporacao})</span>}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -287,13 +348,20 @@ const ManageUsersView = () => {
                                             user.status === 'Em Análise' || user.status === 'Suspenso' ? 'bg-yellow-100 text-yellow-800' :
                                             'bg-red-100 text-red-800'
                                         }`}>
+                                            {/* O status de Civis é 'Ativo' (conforme back-end), Policiais têm seus status */}
                                             {user.status || 'N/A'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                         <button onClick={() => handleOpenEdit(user)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><i className="fas fa-edit"></i></button>
-                                        <button onClick={() => handleOpenRoles(user)} className="text-teal-600 hover:text-teal-900" title="Promover/Rebaixar (Global)"><i className="fas fa-user-shield"></i></button>
-                                        <button onClick={() => handleOpenSuspend(user)} className="text-yellow-600 hover:text-yellow-900" title="Suspender/Banir"><i className="fas fa-user-clock"></i></button>
+                                        {/* Ações como Promover/Rebaixar só fazem sentido para Policiais */}
+                                        {user.tipo === 'Policial' && (
+                                            <>
+                                                <button onClick={() => handleOpenRoles(user)} className="text-teal-600 hover:text-teal-900" title="Promover/Rebaixar (Global)"><i className="fas fa-user-shield"></i></button>
+                                                <button onClick={() => handleOpenSuspend(user)} className="text-yellow-600 hover:text-yellow-900" title="Suspender/Banir"><i className="fas fa-user-clock"></i></button>
+                                            </>
+                                        )}
+                                        {/* Logs são relevantes para todos */}
                                         <button onClick={() => handleOpenLogs(user)} className="text-slate-500 hover:text-slate-800" title="Ver Logs do Usuário"><i className="fas fa-history"></i></button>
                                     </td>
                                 </tr>
@@ -720,7 +788,7 @@ const ManageSubItemsModal = ({ isOpen, onClose, onRefresh, corporacoes, items, t
                         {/* Lista de Existentes */}
                         <div className="mt-4">
                             <h3 className="text-lg font-medium text-slate-700 mb-2">{title}s Atuais</h3>
-                            <ul className="divide-y divide-slate-200 border rounded-md">
+                            <ul className="divide-y divide-y divide-slate-200 border rounded-md">
                                 {items.map(item => (
                                     <li key={item.id} className="flex items-center justify-between p-2 hover:bg-slate-50">
                                         <span className="text-sm">{item.nome} ({item.corporacao_sigla}) {isPatentes ? `[Ordem: ${item.ordem}]` : ''}</span>
@@ -1196,20 +1264,40 @@ const TechPanelView = () => {
 
 // --- COMPONENTE PRINCIPAL DA PÁGINA (ADMINPANEL) ---
 function AdminPanel() {
-    const { user } = useAuth();
+    const { user, logout } = useAuth(); // Adicionado 'logout' para uso no useEffect
+    const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     // Estado que controla a visão
     const [currentView, setCurrentView] = useState('dashboard'); 
 
     // Verificação de permissão
-    const hasAdminPermission = user?.permissoes?.is_staff === true || user?.permissoes?.is_city_admin === true;
+    // Verifica se o user é policial E tem permissão de Staff/City Admin
+    const hasAdminPermission = user?.type === 'policial' && (user?.permissoes?.is_staff === true || user?.permissoes?.is_city_admin === true);
+    
+    // 💥 [CORREÇÃO CRUCIAL] Redirecionamento para Login Policial
+    useEffect(() => {
+        // 1. Se o usuário não tem permissão de Staff/RH, e é do tipo civil, ou não está logado, redireciona
+        if (!user || user.type === 'civil' || !hasAdminPermission) {
+             
+             // Ação: Se estava logado como civil ou sem permissão, desloga (por segurança) e redireciona.
+             if (user) {
+                 toast.error("Acesso de Staff/RH deve ser feito pelo Login Policial.");
+                 logout(); // Desloga o usuário atual (pode ser um civil com token inválido)
+             }
+             
+             // Redireciona para o login policial, que é onde Staff/RH deve entrar.
+             navigate('/policia/login', { replace: true }); 
+        }
+    }, [user, hasAdminPermission, navigate, logout]);
 
-    if (!hasAdminPermission) {
-        return (
+
+    // Se o user não existe ou o efeito ainda não o validou, mostra tela de carregamento/bloqueio.
+    if (!user || user.type !== 'policial' || !hasAdminPermission) {
+         return (
              <div className="flex min-h-screen items-center justify-center bg-slate-100">
                  <div className="p-6 md:p-10 text-center text-red-700 bg-red-100 border border-red-300 rounded-lg shadow-md">
                      <h1 className="text-2xl font-bold mb-2">Acesso Restrito</h1>
-                     <p>Você não possui as permissões necessárias para acessar este painel.</p>
+                     <p>Autenticação necessária via Login Policial.</p>
                  </div>
              </div>
         );
@@ -1277,4 +1365,3 @@ function AdminPanel() {
 }
 
 export default AdminPanel;
-

@@ -8,7 +8,6 @@ import './components/design/ToastifyCustom.css';
 // Layouts e Proteção
 import MainLayout from './components/MainLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
-// REMOVIDO: PoliceLayout.jsx (agora está dentro do PainelPolicia)
 import AntiDevTools from './components/AntiDevTools.jsx';
 
 // --- PÁGINAS PÚBLICAS E DE LOGIN ---
@@ -32,16 +31,6 @@ import PainelPolicia from './pages/PainelPolicia.jsx'; // <-- [IMPORTANTE] O pai
 import AdminPanel from './pages/admin/AdminPanel.jsx'; // <-- [IMPORTANTE] O painel STAFF
 import HeatmapPage from './pages/HeatmapPage.jsx'; // Mantido separado
 import AnaliseTendenciasPage from './pages/AnaliseTendenciasPage.jsx'; // Mantido separado
-
-// --- [REMOVIDO] Todos os imports das páginas policiais antigas ---
-// import PoliceDashboard from './pages/PoliceDashboard.jsx';
-// import AdminPage from './pages/AdminPage.jsx'; 
-// import ConsultaBoletinsPage from './pages/ConsultaBoletinsPage.jsx';
-// import BoletimDetailPage from './pages/BoletimDetailPage.jsx';
-// import PoliceProfilePage from './pages/PoliceProfilePage.jsx';
-// import ListaPoliciaisPage from './pages/ListaPoliciaisPage.jsx';
-// import LogsPage from './pages/LogsPage.jsx';
-// import RelatoriosPage from './pages/RelatoriosPage.jsx';
 
 import './App.css';
 
@@ -82,7 +71,7 @@ function App() {
         {/* --- [INÍCIO] ROTAS UNIFICADAS DA POLÍCIA --- */}
         
         {/* GRUPO 3: PAINEL POLICIAL UNIFICADO (Dashboard, Admin, Boletins, etc.) */}
-        {/* O '/*' pega /policia, /policia/dashboard, /policia/admin, etc. */}
+        {/* O '/*' pega /policia, /policia/dashboard, /policia/admin, etc. e é gerenciado internamente pelo PainelPolicia */}
         <Route 
           path="/policia/*" 
           element={
@@ -92,7 +81,7 @@ function App() {
           } 
         />
 
-        {/* GRUPO 4: ROTAS DE RELATÓRIOS ESPECIAIS (Separadas, como pedido) */}
+        {/* GRUPO 4: ROTAS DE RELATÓRIOS ESPECIAIS (Separadas, pois são páginas full-screen que quebram o layout do PainelPolicia) */}
         <Route 
             path="/policia/relatorios/criminalidade" 
             element={
@@ -117,6 +106,7 @@ function App() {
         <Route 
             path="/staff/admin" 
             element={
+                // Proteção que exige o tipo 'policial' E a permissão 'is_staff'
                 <ProtectedRoute requiredPermission="is_staff">
                     <AdminPanel />
                 </ProtectedRoute>
@@ -128,9 +118,9 @@ function App() {
       </Routes>
        {/* AntiDevTools pode ser mantido se desejado */}
        
+       
     </>
   );
 }
 
 export default App;
-
