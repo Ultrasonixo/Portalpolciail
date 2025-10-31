@@ -1,2 +1,174 @@
-429: Too Many Requests
-For more on scraping GitHub and how it may affect your rights, please review our Terms of Service (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service).
+/* src/pages/BoletimDetailPage.css - VERSÃO COM DESIGN PROFISSIONAL */
+
+/* Fundo da página para dar contraste aos cards */
+.page-container {
+    background-color: #f8fafc;
+}
+
+.boletim-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.details-card {
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: -24px -24px 10px -24px;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    background-color: #fdfdff; /* Um branco levemente diferente */
+    border-radius: 12px 12px 0 0;
+}
+
+.card-header i {
+    font-size: 1.2rem;
+    color: #0d6efd;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #334155;
+}
+
+/* Organização dos dados em Label/Valor */
+.info-grid {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 8px 16px;
+    align-items: center;
+}
+.info-grid strong { color: #64748b; font-weight: 600; }
+.descricao-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; min-height: 100px; white-space: pre-line; color: #475569; }
+
+/* Estilos de Formulário */
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-weight: 600; font-size: 0.9em; color: #475569; }
+.form-group select, .form-group textarea, .form-group input { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #fff; transition: border-color 0.2s, box-shadow 0.2s; }
+.form-group select:focus, .form-group textarea:focus, .form-group input:focus { outline: none; border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2); }
+select:disabled, textarea:disabled, input:disabled { background: #f1f5f9; cursor: not-allowed; color: #64748b; }
+
+/* Botões */
+.back-button { margin-bottom: 20px; background: #6c757d; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 500; }
+.btn-edit, .btn-save, .btn-cancel, .btn-assumir { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold; margin-top: 10px; transition: background-color 0.2s; }
+.btn-assumir { background-color: #0056b3; color: white; }
+.btn-assumir:hover { background-color: #003d82; }
+.btn-edit { background-color: #0d6efd; color: white; }
+.btn-edit:hover { background-color: #0b5ed7; }
+.btn-save { background-color: #198754; color: white; }
+.btn-save:hover { background-color: #157347; }
+.btn-cancel { background-color: #6c757d; color: white; }
+.btn-cancel:hover { background-color: #5c636a; }
+.form-actions { display: flex; gap: 10px; }
+
+/* Tabela de Suspeitos */
+.add-suspeito-form { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-bottom: 15px; align-items: center; }
+.add-suspeito-form input, .add-suspeito-form select { padding: 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 0.9rem; }
+.add-suspeito-form button { padding: 8px 15px; background-color: #0d6efd; color: white; border: none; border-radius: 5px; cursor: pointer; height: fit-content; }
+.suspeitos-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.suspeitos-table th, .suspeitos-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+.suspeitos-table th { background-color: #f8fafc; color: #64748b; font-weight: 600; }
+.btn-remover { background: #dc3545; color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.8em; cursor: pointer; }
+
+/* ✅ =============================================== */
+/* ✅ === CSS CORRIGIDO PARA A GALERIA DE IMAGENS === */
+/* ✅ =============================================== */
+
+.galeria-imagens {
+    display: grid;
+    /* Cria colunas de no mínimo 120px e no máximo 1fr (fração do espaço) */
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 16px; /* Espaçamento entre as imagens */
+}
+
+.imagem-container {
+    position: relative;
+    width: 100%;
+    /* Faz a altura ser igual à largura, criando um quadrado perfeito */
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    overflow: hidden; /* Essencial para o 'object-fit' e 'border-radius' funcionarem */
+    background-color: #f1f5f9; /* Cor de fundo enquanto a imagem carrega */
+    border: 1px solid #e2e8f0;
+}
+
+.imagem-container img {
+    width: 100%;
+    height: 100%;
+    /* ✅ A MÁGICA ACONTECE AQUI: */
+    /* A imagem cobre todo o espaço sem se distorcer, cortando o excesso. */
+    object-fit: cover;
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.imagem-container a:hover img {
+    transform: scale(1.1); /* Efeito de zoom ao passar o mouse */
+    filter: brightness(0.9); /* Escurece um pouco a imagem */
+}
+
+.btn-remover-img {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: rgba(220, 53, 69, 0.8); /* Vermelho translúcido */
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 24px;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s ease;
+}
+
+.imagem-container:hover .btn-remover-img {
+    opacity: 1;
+    transform: scale(1);
+}
+
+input[type="file"] {
+    padding: 10px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+/* Estilo para o seletor de arquivo */
+input[type="file"]::file-selector-button {
+    margin-right: 10px;
+    border: none;
+    background: #0d6efd;
+    padding: 8px 12px;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    transition: background .2s ease-in-out;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background: #0b5ed7;
+}

@@ -2,31 +2,27 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { Link, useNavigate, NavLink } from 'react-router-dom';
 import { toast } from 'react-toastify';
-// Importa o componente de detalhes do log (necessário para o LogsView)
+import { motion, AnimatePresence } from 'framer-motion'; 
 import LogDetails from '../../components/LogDetails.jsx';
-// Importa o CSS da página de logs (necessário para o LogsView)
-import '../../components/design/LogsPage.css'; // Ajuste o caminho se você moveu
+import '../../components/design/LogsPage.css'; 
 
-// --- [CORREÇÃO] Define a URL base da sua API (do server.js) ---
 const API_URL = 'http://localhost:5173'; 
 
 // --- [INÍCIO] COMPONENTE DA SIDEBAR ---
 const StaffSidebarInternal = ({ currentView, setView, isMobileMenuOpen, closeMobileMenu }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    // Permissão para Painel Técnico (geralmente is_dev OU is_staff dependendo da sua regra)
     const canAccessTechPanel = user?.permissoes?.is_dev === true || user?.permissoes?.is_staff === true;
 
     const handleLogout = () => {
         logout();
-        navigate('/'); // Redireciona para home
+        navigate('/'); 
     };
 
-    // Função auxiliar para criar links da Nav
     const NavItem = ({ viewName, title, icon }) => {
         const isActive = currentView === viewName;
         return (
-            <button // Links agora são botões que mudam o estado
+            <button 
                 onClick={() => {
                     setView(viewName);
                     closeMobileMenu();
@@ -57,10 +53,8 @@ const StaffSidebarInternal = ({ currentView, setView, isMobileMenuOpen, closeMob
                 <NavItem viewName="structure" title="Departamentos" icon="fa-sitemap" />
                 <NavItem viewName="logs" title="Logs do Sistema" icon="fa-clipboard-list" />
                 <NavItem viewName="bug_reports" title="Reportes de Bug" icon="fa-bug" />
-
-                {/* --- ATUALIZADO: Link para Painel Técnico acessível por Staff --- */}
                 {canAccessTechPanel && (
-                    <NavItem viewName="tech_panel" title="Painel Técnico" icon="fa-cogs" /> // Ícone de engrenagens talvez faça mais sentido agora
+                    <NavItem viewName="tech_panel" title="Painel Técnico" icon="fa-cogs" />
                 )}
             </nav>
             {/* Rodapé */}
@@ -133,12 +127,10 @@ const DashboardView = ({ user, setView }) => {
 
     return (
         <div>
-            {/* Cabeçalho */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-slate-800 mb-1">Visão Geral - Staff</h1>
                 <p className="text-slate-600 text-lg">Selecione uma ferramenta administrativa abaixo.</p>
             </div>
-            {/* Grid de Ações */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 <AdminActionCard title="Gerenciamento de Usuários" description="Controle total sobre contas policiais e civis (promover, rebaixar, suspender, banir, ver logs)." icon="fa-users-cog" onClick={() => setView('manage_users')} disabled={false}/>
                 <AdminActionCard title="Departamentos e Hierarquia" description="Crie/edite Corporações (PM, PC), Patentes e Divisões." icon="fa-sitemap" onClick={() => setView('structure')} disabled={false}/>
@@ -162,19 +154,16 @@ const DashboardView = ({ user, setView }) => {
 const ManageUsersView = () => {
     const { token, logout } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchType, setSearchType] = useState('Todos'); // 'Todos', 'Civil', 'Policial'
+    const [searchType, setSearchType] = useState('Todos'); 
     const [searchResults, setSearchResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    // Estado para controlar se a busca inicial já foi feita
     const [initialSearchDone, setInitialSearchDone] = useState(false);
 
 
-    // 💥 [CORRIGIDO] Função de busca eficiente
     const fetchUsers = useCallback(async (query, type) => {
         setIsLoading(true);
         setSearchResults([]); 
         
-        // Determina se devemos emitir um aviso de 2 caracteres
         const requiresMinLengthCheck = type !== 'Todos' && query && query.length < 2;
 
         if (requiresMinLengthCheck) {
@@ -192,14 +181,12 @@ const ManageUsersView = () => {
         }
 
         try {
-            // A API do back-end (server.js) agora lida com o filtro vazio ('') para o tipo selecionado
             const response = await fetch(`${API_URL}/api/staff/search-users`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                // Passa a query final e o tipo.
                 body: JSON.stringify({ searchQuery: query, searchType: type }) 
             });
 
@@ -216,7 +203,6 @@ const ManageUsersView = () => {
 
             setSearchResults(data.users || []);
             
-            // 💥 [CORRIGIDO] Notificação única: Apenas exibe o toast após a primeira busca automática
             if (initialSearchDone) { 
                  if (data.users.length === 0) {
                      toast.update(toastId, { render: "Nenhum usuário encontrado.", type: "info", isLoading: false, autoClose: 3000 });
@@ -224,7 +210,6 @@ const ManageUsersView = () => {
                      toast.update(toastId, { render: `Encontrado(s) ${data.users.length} usuário(s).`, type: "success", isLoading: false, autoClose: 2000 });
                  }
             } else {
-                 // Primeira busca (automática): Apenas esconde o loading
                  toast.dismiss(toastId); 
                  setInitialSearchDone(true);
             }
@@ -237,33 +222,22 @@ const ManageUsersView = () => {
         }
     }, [token, logout, initialSearchDone]);
 
-
-    // 1. 💥 [CORREÇÃO: BUSCA AUTOMÁTICA INICIAL]
-    // Executa a busca inicial (Todos, query vazia) apenas uma vez.
     useEffect(() => {
-        // Usa uma flag interna para garantir que só roda na primeira montagem (evita duplicidade no Strict Mode)
         let mounted = true;
         
         if (!initialSearchDone && mounted) {
-             // Chamada para carregar TUDO na primeira vez.
              fetchUsers(searchQuery, searchType);
         }
 
         return () => { mounted = false; };
         
-    }, [fetchUsers]); // Depende apenas de fetchUsers para rodar na montagem.
+    }, [fetchUsers]); 
 
-
-    // 2. 💥 [CORREÇÃO: FILTRO DE TIPO E TEXTO EM TEMPO REAL]
     useEffect(() => {
-        // Recarrega a lista APENAS se o filtro de TIPO mudar E o campo de busca estiver vazio.
-        // Se a busca de texto tiver conteúdo, a busca só deve ocorrer no clique (handleSearchClick).
-        
         if (!searchQuery) {
-            // Se o campo de texto está vazio, o filtro de tipo deve funcionar imediatamente
              const delay = setTimeout(() => {
                  fetchUsers(searchQuery, searchType);
-             }, 150); // Pequeno debounce para evitar chamadas rápidas
+             }, 150);
              return () => clearTimeout(delay);
         }
         
@@ -272,7 +246,6 @@ const ManageUsersView = () => {
 
     const handleSearchClick = (e) => {
         e.preventDefault();
-        // Dispara a busca manual com o termo e tipo atuais (a lógica de 2 caracteres está dentro de fetchUsers)
         fetchUsers(searchQuery, searchType);
     };
 
@@ -339,7 +312,6 @@ const ManageUsersView = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{user.passaporte}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                         {user.tipo}
-                                        {/* A corporação só existe para policiais, para civis é nulo ou undefined */}
                                         {user.corporacao && <span className="ml-2 text-xs font-semibold text-indigo-700">({user.corporacao})</span>}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -348,20 +320,17 @@ const ManageUsersView = () => {
                                             user.status === 'Em Análise' || user.status === 'Suspenso' ? 'bg-yellow-100 text-yellow-800' :
                                             'bg-red-100 text-red-800'
                                         }`}>
-                                            {/* O status de Civis é 'Ativo' (conforme back-end), Policiais têm seus status */}
                                             {user.status || 'N/A'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                         <button onClick={() => handleOpenEdit(user)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><i className="fas fa-edit"></i></button>
-                                        {/* Ações como Promover/Rebaixar só fazem sentido para Policiais */}
                                         {user.tipo === 'Policial' && (
                                             <>
                                                 <button onClick={() => handleOpenRoles(user)} className="text-teal-600 hover:text-teal-900" title="Promover/Rebaixar (Global)"><i className="fas fa-user-shield"></i></button>
                                                 <button onClick={() => handleOpenSuspend(user)} className="text-yellow-600 hover:text-yellow-900" title="Suspender/Banir"><i className="fas fa-user-clock"></i></button>
                                             </>
                                         )}
-                                        {/* Logs são relevantes para todos */}
                                         <button onClick={() => handleOpenLogs(user)} className="text-slate-500 hover:text-slate-800" title="Ver Logs do Usuário"><i className="fas fa-history"></i></button>
                                     </td>
                                 </tr>
@@ -394,6 +363,7 @@ const translateAction = (actionKey) => {
         'Create Concurso (Fallback V1)': 'Criar Concurso (Fallback V1)',
         'Generate Global Token': 'Gerar Token Global',
         'Update Portal Settings': 'Atualizar Config. Portal',
+        'Update Corp Permissions': 'Atualizar Permissões Corp.', // Adicionado
     };
     return translations[actionKey] || actionKey;
 };
@@ -420,6 +390,7 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
             'Bug Report', 'Create Concurso', 'Update Concurso', 'Delete Concurso',
             'Create Concurso (Fallback V2)', 'Create Concurso (Fallback V1)',
             'Generate Global Token', 'Update Portal Settings',
+            'Update Corp Permissions',
         ];
         const translatedActions = allActionKeys
             .map(key => ({ key: key, translated: translateAction(key) }))
@@ -438,7 +409,6 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
             date: currentFilters.date
         });
         try {
-            // --- [CORREÇÃO] API URL Completa ---
             const response = await fetch(`${API_URL}/api/admin/logs?${params.toString()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -447,10 +417,10 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
                 if (logout) logout(); throw new Error('Sessão inválida ou sem permissão para ver logs.');
             }
             
-            const textResponse = await response.text(); // Pega a resposta como TEXTO primeiro
+            const textResponse = await response.text();
             let data;
             try {
-                 data = JSON.parse(textResponse); // Tenta parsear como JSON
+                 data = JSON.parse(textResponse);
             } catch (jsonError) {
                 console.error("Falha ao parsear JSON. Resposta do servidor:", textResponse);
                 throw new Error("Erro de comunicação. O servidor não respondeu com JSON.");
@@ -534,10 +504,11 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{log.admin_nome || `ID ${log.usuario_id}`} ({log.admin_corporacao || 'N/A'})</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`log-action-tag log-action-${
-                                                    log.acao
+                                                    (log.acao || 'unknown') // Fallback para ação desconhecida
                                                         .replace(/\s+/g, '-')
                                                         .replace(/[()]/g, '')
                                                         .replace(/\//g, '-')
+                                                        .replace(/é/g, 'e') // Normaliza acentos
                                                         .toLowerCase()
                                                 }`}>
                                                     {translateAction(log.acao)}
@@ -552,7 +523,7 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
                                         </tr>
                                     ))
                                 ) : (
-                                    <tr><td colSpan="5" className="p-6 text-center text-slate-500">Nenhum log encontrado com os filtros aplicados.</td></tr>
+                                    <tr><td colSpan={5} className="p-6 text-center text-slate-500">Nenhum log encontrado com os filtros aplicados.</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -575,10 +546,42 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
 };
 // --- [FIM] VISÃO 3 ---
 
-// --- [INÍCIO] MODAIS DE GERENCIAMENTO DE ESTRUTURA ---
+// --- [INÍCIO] COMPONENTE DE TOGGLE (PermissionToggle) ---
+const PermissionToggle = ({ label, description, isEnabled, onToggle }) => {
+    // ... (Inalterado) ...
+    return (
+        <div className="flex items-center justify-between py-4 border-b border-slate-200 last:border-b-0">
+            <div className="max-w-xs">
+                <label className="block text-sm font-medium text-slate-800">{label}</label>
+                <p className="text-xs text-slate-500">{description}</p>
+            </div>
+            <button
+                type="button"
+                role="switch"
+                aria-checked={isEnabled}
+                onClick={() => onToggle(!isEnabled)}
+                data-state={isEnabled ? 'checked' : 'unchecked'}
+                className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+                           transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2
+                           data-[state=checked]:bg-indigo-700 data-[state=unchecked]:bg-slate-300"
+            >
+                <motion.span
+                    aria-hidden="true"
+                    className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 
+                               transition duration-200 ease-in-out"
+                    layout
+                    animate={{ x: isEnabled ? 20 : 0 }} 
+                />
+            </button>
+        </div>
+    );
+};
+// --- [FIM] COMPONENTE DE TOGGLE ---
 
-// --- Modal para Gerenciar Corporações ---
+
+// --- [INÍCIO] MODAIS DE GERENCIAMENTO DE ESTRUTURA ---
 const ManageCorporacoesModal = ({ isOpen, onClose, corporacoes, onRefresh }) => {
+    // ... (Inalterado) ...
     const { token, logout } = useAuth();
     const [nome, setNome] = useState('');
     const [sigla, setSigla] = useState('');
@@ -607,7 +610,7 @@ const ManageCorporacoesModal = ({ isOpen, onClose, corporacoes, onRefresh }) => 
             const data = await response.json();
             if (!response.ok) throw new Error(data.message);
             toast.success(data.message);
-            onRefresh(); // Atualiza a lista principal
+            onRefresh();
         } catch (err) { toast.error(err.message); }
         setLoading(false);
     };
@@ -628,7 +631,7 @@ const ManageCorporacoesModal = ({ isOpen, onClose, corporacoes, onRefresh }) => 
             const data = await response.json();
             if (!response.ok) throw new Error(data.message);
             toast.success(data.message);
-            onRefresh(); // Atualiza a lista principal
+            onRefresh();
             resetForm();
         } catch (err) { toast.error(err.message); }
         setLoading(false);
@@ -642,7 +645,6 @@ const ManageCorporacoesModal = ({ isOpen, onClose, corporacoes, onRefresh }) => 
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-                        {/* Formulário */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
@@ -653,8 +655,6 @@ const ManageCorporacoesModal = ({ isOpen, onClose, corporacoes, onRefresh }) => 
                                 <input type="text" value={sigla} onChange={(e) => setSigla(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md" required />
                             </div>
                         </div>
-                        
-                        {/* Lista de Existentes */}
                         <div className="mt-4">
                             <h3 className="text-lg font-medium text-slate-700 mb-2">Corporações Atuais</h3>
                             <ul className="divide-y divide-slate-200 border rounded-md">
@@ -680,15 +680,14 @@ const ManageCorporacoesModal = ({ isOpen, onClose, corporacoes, onRefresh }) => 
     );
 };
 
-// --- Modal Genérico para Patentes e Divisões ---
 const ManageSubItemsModal = ({ isOpen, onClose, onRefresh, corporacoes, items, title, endpoint }) => {
+    // ... (Inalterado) ...
     const { token, logout } = useAuth();
     const [nome, setNome] = useState('');
     const [corporacaoSigla, setCorporacaoSigla] = useState('');
-    const [ordem, setOrdem] = useState(0); // Apenas para patentes
+    const [ordem, setOrdem] = useState(0); 
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
-
     const isPatentes = endpoint === 'patentes';
 
     useEffect(() => {
@@ -810,21 +809,19 @@ const ManageSubItemsModal = ({ isOpen, onClose, onRefresh, corporacoes, items, t
         </div>
     );
 };
-
 // --- [FIM] MODAIS DE GERENCIAMENTO DE ESTRUTURA ---
 
 
 // --- [INÍCIO] VISÃO 4: DEPARTAMENTOS E HIERARQUIA (ATUALIZADO) ---
 const StructureView = () => {
-    const { token, logout } = useAuth();
+    // ✅ ATUALIZADO: Pega 'user' e 'updateUserPermissions' do context
+    const { token, logout, user, updateUserPermissions } = useAuth(); 
     const [structureData, setStructureData] = useState({ corporacoes: [], patentes: [], divisoes: [] });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    
-    // --- [NOVO] Estado para controlar modais ---
-    const [modalState, setModalState] = useState(null); // null, 'corps', 'ranks', 'divs'
+    const [modalState, setModalState] = useState(null);
 
-    // --- API Call (Callback para poder ser usado no refresh) ---
+    // --- API Call ---
     const fetchStructureData = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -835,7 +832,6 @@ const StructureView = () => {
         }
 
         try {
-            // --- [CORREÇÃO] API URL Completa ---
             const response = await fetch(`${API_URL}/api/staff/structure`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -847,15 +843,23 @@ const StructureView = () => {
             try {
                 data = await response.json();
             } catch (jsonError) {
-                const textResponse = await response.text(); 
-                console.error("Falha ao parsear JSON. Resposta do servidor:", textResponse);
-                throw new Error("Erro de comunicação. O servidor não respondeu com JSON.");
+                console.error("Falha ao parsear JSON de estrutura:", jsonError);
+                throw new Error("Erro de comunicação com o servidor.");
             }
             if (!response.ok) {
                 throw new Error(data.message || 'Falha ao buscar dados de estrutura.');
             }
+
+            // Garante que 'permissoes' seja um objeto
+            const processedCorps = (data.corporacoes || []).map(corp => ({
+                ...corp,
+                permissoes: typeof corp.permissoes === 'string' && corp.permissoes.startsWith('{')
+                            ? JSON.parse(corp.permissoes)
+                            : (typeof corp.permissoes === 'object' && corp.permissoes !== null ? corp.permissoes : {})
+            }));
+            
             setStructureData({
-                corporacoes: data.corporacoes || [],
+                corporacoes: processedCorps,
                 patentes: data.patentes || [],
                 divisoes: data.divisoes || []
             });
@@ -872,7 +876,72 @@ const StructureView = () => {
     }, [fetchStructureData]);
     // --- Fim API Call ---
 
-    // --- [ATUALIZADO] Handlers dos botões ---
+    // --- ✅ FUNÇÃO DE PERMISSÃO ATUALIZADA ---
+    const handlePermissionChange = async (corpId, permKey, newValue) => {
+        const adminUser = user;
+        
+        const currentCorp = structureData.corporacoes.find(c => c.id === corpId);
+        if (!currentCorp) return;
+
+        // 1. Cria o NOVO objeto de permissões
+        const newPermissions = {
+            ...currentCorp.permissoes, 
+            [permKey]: newValue         
+        };
+        const newPermissionsJson = JSON.stringify(newPermissions);
+
+        // 2. UI Otimista (Atualiza o estado local ANTES da API)
+        setStructureData(prev => ({
+            ...prev,
+            corporacoes: prev.corporacoes.map(corp => 
+                corp.id === corpId 
+                ? { ...corp, permissoes: newPermissions } 
+                : corp
+            )
+        }));
+        
+        // 3. Salva no Backend
+        const toastId = toast.loading("Salvando permissão...");
+        try {
+            const response = await fetch(`${API_URL}/api/staff/corporacoes/${corpId}/permissions`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ permissoes: newPermissionsJson }) 
+            });
+
+            if (response.status === 401 || response.status === 403) { if (logout) logout(); throw new Error('Sessão inválida.'); }
+            
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Falha ao salvar no backend.');
+            
+            toast.update(toastId, { render: data.message, type: 'success', isLoading: false, autoClose: 2000 });
+            
+            // ✅ 4. ATUALIZA O AUTHCONTEXT NA HORA
+            // Se a corporação alterada for a do próprio staff, atualiza o context
+            if (currentCorp.sigla === user.corporacao) {
+                updateUserPermissions(newPermissions);
+            }
+
+        } catch (err) {
+            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000 });
+            
+            // 5. Reverte o estado local em caso de erro
+            setStructureData(prev => ({
+                ...prev,
+                corporacoes: prev.corporacoes.map(corp => 
+                    corp.id === corpId 
+                    ? { ...corp, permissoes: currentCorp.permissoes } // Volta ao original
+                    : corp
+                )
+            }));
+        }
+    };
+    // --- FIM DA FUNÇÃO DE PERMISSÃO ---
+
+
     const handleManageCorps = () => setModalState('corps');
     const handleManageRanks = () => setModalState('ranks');
     const handleManageDivisions = () => setModalState('divs');
@@ -880,11 +949,11 @@ const StructureView = () => {
     const handleCloseModal = (refresh = false) => {
         setModalState(null);
         if (refresh) {
-            fetchStructureData(); // Re-busca os dados se algo mudou
+            fetchStructureData(); 
         }
     };
 
-    // --- [ATUALIZADO] Render List para aceitar formatador ---
+    // Função de renderização de lista (Inalterada)
     const renderList = (title, items, formatter) => (
         <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
             <h3 className="text-lg font-semibold text-slate-700 mb-2">{title} ({items.length})</h3>
@@ -907,43 +976,66 @@ const StructureView = () => {
                 <p className="text-slate-600 text-lg">Gerencie a estrutura fundamental das corporações policiais.</p>
             </div>
             
-            {/* Grid de Botões (Callbacks atualizados) */}
+            {/* Grid de Botões (Gerenciamento) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
                 <AdminActionCard 
                     title="Gerenciar Corporações"
                     description="Criar, editar ou desativar corporações (ex: PM, PC, GCM)."
                     icon="fa-building"
                     onClick={handleManageCorps}
-                    disabled={false} // <-- HABILITADO
+                    disabled={false}
                 />
                 <AdminActionCard 
                     title="Gerenciar Patentes"
                     description="Definir a lista global de patentes e a quais corporações se aplicam."
                     icon="fa-layer-group"
                     onClick={handleManageRanks}
-                    disabled={false} // <-- HABILITADO
+                    disabled={false}
                 />
                 <AdminActionCard 
                     title="Gerenciar Divisões"
                     description="Criar e editar as divisões e unidades dentro de cada corporação."
                     icon="fa-sitemap"
                     onClick={handleManageDivisions}
-                    disabled={false} // <-- HABILITADO
+                    disabled={false}
                 />
             </div>
 
-            {/* Grid de Visualização (Labels e Formatters atualizados) */}
-            {loading && <p className="text-center text-slate-500">Carregando estrutura...</p>}
-            {error && <p className="p-4 text-center text-red-600 bg-red-100 rounded-lg border border-red-300">{error}</p>}
-            {!loading && !error && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {renderList("Corporações", structureData.corporacoes, item => `${item.nome} (${item.sigla})`)}
-                    {renderList("Patentes", structureData.patentes, item => `${item.nome} (${item.corporacao_sigla}) [Ordem: ${item.ordem}]`)}
-                    {renderList("Divisões", structureData.divisoes, item => `${item.nome} (${item.corporacao_sigla})`)}
-                </div>
-            )}
+            {/* --- SEÇÃO DE PERMISSÕES ATUALIZADA --- */}
+            <div className="mt-12">
+                <h2 className="text-2xl font-bold text-slate-800 mb-6">Permissões da Corporação</h2>
+                
+                {loading && <p className="text-center text-slate-500">Carregando estrutura...</p>}
+                {error && <p className="p-4 text-center text-red-600 bg-red-100 rounded-lg border border-red-300">{error}</p>}
+                
+                {!loading && !error && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {structureData.corporacoes.map(corp => (
+                            <div key={corp.id} className="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                                <h3 className="text-lg font-semibold text-slate-900 mb-1">{corp.nome} ({corp.sigla})</h3>
+                                <p className="text-sm text-slate-500 mb-4">ID da Corporação: {corp.id}</p>
+                                
+                                <div className="space-y-2">
+                                    <PermissionToggle
+                                        label="Assumir B.O."
+                                        description="Permite que membros assumam B.Os de civis."
+                                        isEnabled={!!corp.permissoes.podeAssumirBO} 
+                                        onToggle={(newValue) => handlePermissionChange(corp.id, 'podeAssumirBO', newValue)}
+                                    />
+                                    <PermissionToggle
+                                        label="Editar B.O. (Investigar)"
+                                        description="Permite que membros editem B.Os que assumiram."
+                                        isEnabled={!!corp.permissoes.podeEditarBO} 
+                                        onToggle={(newValue) => handlePermissionChange(corp.id, 'podeEditarBO', newValue)}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+            {/* --- FIM DA SEÇÃO DE PERMISSÕES --- */}
             
-            {/* --- [NOVO] Renderiza os Modais --- */}
             <ManageCorporacoesModal 
                 isOpen={modalState === 'corps'}
                 onClose={() => handleCloseModal(false)}
@@ -968,7 +1060,6 @@ const StructureView = () => {
                 title="Divisão"
                 endpoint="divisoes"
             />
-            
         </div>
     );
 };
@@ -981,7 +1072,7 @@ const TechPanelView = () => {
     const canAccessTech = user?.permissoes?.is_dev === true || user?.permissoes?.is_staff === true;
 
     // --- Estados para Gerador de Token ---
-    const [tokenCorporacao, setTokenCorporacao] = useState('PM'); // Padrão PM
+    const [tokenCorporacao, setTokenCorporacao] = useState('PM'); 
     const [tokenUses, setTokenUses] = useState(1);
     const [tokenDuration, setTokenDuration] = useState(24);
     const [generatedToken, setGeneratedToken] = useState('');
@@ -992,52 +1083,55 @@ const TechPanelView = () => {
         header_title: '',
         header_subtitle: '',
         header_logo_url: '',
-        footer_copyright: ''
+        footer_copyright: '',
+        banner_images: [] // ✅ NOVO: Estado para banners
     });
-    // --- NOVO: Estado para o arquivo de logo ---
     const [logoFile, setLogoFile] = useState(null);
-    
     const [isLoadingSettings, setIsLoadingSettings] = useState(true);
     const [isSavingSettings, setIsSavingSettings] = useState(false);
+    
+    // ✅ NOVO: Estados para o Gerenciador de Banners
+    const [newBannerFiles, setNewBannerFiles] = useState([]);
+    const [isSavingBanners, setIsSavingBanners] = useState(false);
+    const maxBanners = 10;
+
 
     // --- API Call: Buscar Configurações do Portal ---
-    useEffect(() => {
-        const fetchPortalSettings = async () => {
-            setIsLoadingSettings(true);
+    const fetchPortalSettings = useCallback(async () => {
+        setIsLoadingSettings(true);
+        try {
+            const response = await fetch(`${API_URL}/api/public/portal-settings`);
+            let data;
             try {
-                // --- [CORREÇÃO] API URL Completa ---
-                const response = await fetch(`${API_URL}/api/public/portal-settings`);
-                
-                let data;
-                try {
-                    data = await response.json();
-                } catch (jsonError) {
-                    const textResponse = await response.text();
-                    console.error("Falha ao parsear JSON de settings. Resposta do servidor:", textResponse);
-                    throw new Error("Erro de comunicação. O servidor não respondeu com JSON.");
-                }
-
-                if (!response.ok) throw new Error(data.message || 'Falha ao buscar configurações.');
-                
-                setPortalSettings({
-                    header_title: data.header_title || '',
-                    header_subtitle: data.header_subtitle || '',
-                    header_logo_url: data.header_logo_url || '',
-                    footer_copyright: data.footer_copyright || ''
-                });
-            } catch (err) {
-                toast.error(`Erro ao carregar configs: ${err.message}`);
-            } finally {
-                setIsLoadingSettings(false);
+                data = await response.json();
+            } catch (jsonError) {
+                const textResponse = await response.text();
+                console.error("Falha ao parsear JSON de settings. Resposta do servidor:", textResponse);
+                throw new Error("Erro de comunicação. O servidor não respondeu com JSON.");
             }
-        };
+            if (!response.ok) throw new Error(data.message || 'Falha ao buscar configurações.');
+            
+            setPortalSettings({
+                header_title: data.header_title || '',
+                header_subtitle: data.header_subtitle || '',
+                header_logo_url: data.header_logo_url || '',
+                footer_copyright: data.footer_copyright || '',
+                banner_images: Array.isArray(data.banner_images) ? data.banner_images : [] // ✅ NOVO
+            });
+        } catch (err) {
+            toast.error(`Erro ao carregar configs: ${err.message}`);
+        } finally {
+            setIsLoadingSettings(false);
+        }
+    }, []); // Removida dependência desnecessária
 
+    useEffect(() => {
         if (canAccessTech) {
             fetchPortalSettings();
         }
-    }, [canAccessTech]);
+    }, [canAccessTech, fetchPortalSettings]);
 
-    // --- API Call: Salvar Configurações do Portal (Atualizado para FormData) ---
+    // --- API Call: Salvar Configurações do Portal (Logo, Títulos) ---
     const handleSaveSettings = async (e) => {
         e.preventDefault();
         setIsSavingSettings(true);
@@ -1059,14 +1153,10 @@ const TechPanelView = () => {
         }
         formData.append('old_logo_url', portalSettings.header_logo_url);
 
-
         try {
-            // --- [CORREÇÃO] API URL Completa ---
             const response = await fetch(`${API_URL}/api/staff/portal-settings`, {
                 method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             });
             
@@ -1086,9 +1176,10 @@ const TechPanelView = () => {
             toast.update(toastId, { render: result.message, type: 'success', isLoading: false, autoClose: 3000 });
             
             if (result.new_logo_url) {
+                // Atualiza o estado local com a nova URL do logo
                 setPortalSettings(prev => ({ ...prev, header_logo_url: result.new_logo_url }));
             }
-            setLogoFile(null); // Limpa o seletor de arquivo
+            setLogoFile(null); 
 
         } catch (err) {
             toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000 });
@@ -1111,7 +1202,6 @@ const TechPanelView = () => {
         }
 
         try {
-            // --- [CORREÇÃO] API URL Completa ---
             const response = await fetch(`${API_URL}/api/staff/generate-global-token`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -1135,7 +1225,7 @@ const TechPanelView = () => {
             if (!response.ok) throw new Error(result.message || 'Falha ao gerar token.');
 
             toast.update(toastId, { render: result.message, type: 'success', isLoading: false, autoClose: 4000 });
-            setGeneratedToken(result.token); // Mostra o token
+            setGeneratedToken(result.token);
         } catch (err) {
             toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000 });
         } finally {
@@ -1143,7 +1233,83 @@ const TechPanelView = () => {
         }
     };
     
-    // Handlers para os cards restantes
+    // ✅ --- [NOVO] FUNÇÕES PARA GERENCIAR BANNERS ---
+    
+    // 1. Quando novos arquivos são selecionados
+    const handleBannerFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        
+        // Verifica o limite total
+        const totalBanners = portalSettings.banner_images.length + files.length;
+        if (totalBanners > maxBanners) {
+            toast.error(`Limite de ${maxBanners} banners excedido. Você tem ${portalSettings.banner_images.length} e tentou adicionar ${files.length}.`);
+            e.target.value = null; // Limpa o input
+            setNewBannerFiles([]);
+            return;
+        }
+        setNewBannerFiles(files);
+    };
+
+    // 2. Para remover um banner EXISTENTE (apenas no estado local)
+    const handleRemoveBanner = (imageUrlToRemove) => {
+        if (!window.confirm("Tem certeza que deseja remover este banner? A remoção será permanente ao salvar.")) return;
+        
+        setPortalSettings(prev => ({
+            ...prev,
+            banner_images: prev.banner_images.filter(url => url !== imageUrlToRemove)
+        }));
+    };
+    
+    // 3. Para remover um banner NOVO (que ainda não foi salvo)
+    const handleRemoveNewFile = (fileNameToRemove) => {
+        setNewBannerFiles(prev => prev.filter(file => file.name !== fileNameToRemove));
+    };
+
+    // 4. API Call: Salvar Banners
+    const handleSaveBanners = async () => {
+        setIsSavingBanners(true);
+        const toastId = toast.loading("Salvando banners...");
+
+        const formData = new FormData();
+        
+        // Adiciona os banners existentes que foram mantidos
+        formData.append('existing_images', JSON.stringify(portalSettings.banner_images));
+        
+        // Adiciona os novos arquivos
+        newBannerFiles.forEach(file => {
+            formData.append('banners', file); // 'banners' deve bater com o upload.array() no backend
+        });
+
+        try {
+            const response = await fetch(`${API_URL}/api/staff/banner-images`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+
+            if (response.status === 401 || response.status === 403) { if (logout) logout(); throw new Error('Sessão inválida.'); }
+            
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Falha ao salvar banners.');
+
+            toast.update(toastId, { render: result.message, type: 'success', isLoading: false, autoClose: 3000 });
+            
+            // Atualiza o estado local com a nova lista vinda do servidor
+            setPortalSettings(prev => ({ ...prev, banner_images: result.banner_images || [] }));
+            setNewBannerFiles([]); // Limpa os arquivos novos
+
+        } catch (err) {
+            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000 });
+            // Recarrega as configurações do servidor para reverter o estado local em caso de erro
+            fetchPortalSettings();
+        } finally {
+            setIsSavingBanners(false);
+        }
+    };
+    
+    // --- FIM DAS FUNÇÕES DE BANNER ---
+    
+    
     const handleManagePermissions = () => toast.info("Abrir modal Gerenciar Permissões (a implementar - requer is_dev?)");
     const handleViewServerStatus = () => toast.info("Abrir modal Status do Sistema (a implementar)");
 
@@ -1186,7 +1352,6 @@ const TechPanelView = () => {
                                     <option value="PM">PM</option>
                                     <option value="PC">PC</option>
                                     <option value="GCM">GCM</option>
-                                    {/* Adicione outras corporações se necessário */}
                                 </select>
                             </div>
                         </div>
@@ -1210,25 +1375,28 @@ const TechPanelView = () => {
                         <form onSubmit={handleSaveSettings}>
                             <div className="space-y-4 mb-4">
                                 <div className="form-group">
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Título do Header (ex: Secretaria Policia)</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Título do Header</label>
                                     <input type="text" value={portalSettings.header_title} onChange={(e) => setPortalSettings({...portalSettings, header_title: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md" disabled={isSavingSettings}/>
+                                </div>
+                                <div className="form-group">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Subtítulo do Header</label>
+                                    <input type="text" value={portalSettings.header_subtitle} onChange={(e) => setPortalSettings({...portalSettings, header_subtitle: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md" disabled={isSavingSettings}/>
                                 </div>
                                 <div className="form-group">
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Texto Copyright Footer</label>
                                     <input type="text" value={portalSettings.footer_copyright} onChange={(e) => setPortalSettings({...portalSettings, footer_copyright: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-md" disabled={isSavingSettings}/>
                                 </div>
                                 
-                                {/* --- CAMPO DE UPLOAD DE LOGO --- */}
                                 <div className="form-group">
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Logo (Header/Footer)</label>
                                     <input 
                                         type="file" 
                                         accept="image/png, image/jpeg, image/gif, image/webp"
-                                        onChange={(e) => setLogoFile(e.target.files[0])} // Salva o ARQUIVO no estado
+                                        onChange={(e) => setLogoFile(e.target.files[0])}
                                         className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
                                         disabled={isSavingSettings}
                                     />
-                                    <small className="text-slate-500">Enviar novo logo (ex: /brasao.png). Deixe em branco para manter o atual: <span className="font-medium text-slate-700">{portalSettings.header_logo_url}</span></small>
+                                    <small className="text-slate-500">Enviar novo logo. Deixe em branco para manter o atual: <span className="font-medium text-slate-700">{portalSettings.header_logo_url}</span></small>
                                 </div>
                             </div>
                             <button type="submit" className="w-full py-2 px-4 rounded-md text-sm font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-50" disabled={isSavingSettings}>
@@ -1238,6 +1406,97 @@ const TechPanelView = () => {
                     )}
                 </div>
             </div>
+
+            {/* --- ✅ NOVO: CARD GERENCIADOR DE BANNERS --- */}
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200 mb-8">
+                 <h2 className="text-xl font-semibold text-slate-800 mb-4 border-b pb-3">Gerenciar Banners do Portal (Máx: {maxBanners})</h2>
+                 {isLoadingSettings ? <p className="text-slate-500">Carregando banners...</p> : (
+                    <div>
+                        {/* 1. Lista de Banners Atuais */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Banners Atuais ({portalSettings.banner_images.length})</label>
+                            {portalSettings.banner_images.length === 0 ? (
+                                <p className="text-sm text-slate-500 text-center italic py-4 bg-slate-50 rounded-md">Nenhum banner salvo.</p>
+                            ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                    {portalSettings.banner_images.map((imgUrl) => (
+                                        <div key={imgUrl} className="relative group border rounded-md overflow-hidden aspect-video">
+                                            <img 
+                                                src={`${API_URL}${imgUrl}`} 
+                                                alt="Banner" 
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => { e.target.onerror = null; e.target.src = "/brasao.png" }} // Fallback
+                                            />
+                                            <button
+                                                onClick={() => handleRemoveBanner(imgUrl)}
+                                                disabled={isSavingBanners}
+                                                className="absolute top-1 right-1 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                                                title="Remover este banner"
+                                            >
+                                                &times;
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* 2. Lista de Novos Banners (para upload) */}
+                        {newBannerFiles.length > 0 && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Novos Banners para Adicionar ({newBannerFiles.length})</label>
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                     {newBannerFiles.map((file) => (
+                                        <div key={file.name} className="relative group border border-dashed border-blue-400 rounded-md overflow-hidden aspect-video">
+                                             <img 
+                                                src={URL.createObjectURL(file)} 
+                                                alt={file.name} 
+                                                className="w-full h-full object-cover opacity-70"
+                                                onLoad={e => URL.revokeObjectURL(e.target.src)} // Limpa memória
+                                            />
+                                            <button
+                                                onClick={() => handleRemoveNewFile(file.name)}
+                                                disabled={isSavingBanners}
+                                                className="absolute top-1 right-1 w-6 h-6 bg-gray-600 text-white rounded-full flex items-center justify-center text-xs font-bold opacity-50 group-hover:opacity-100 transition-opacity"
+                                                title="Cancelar este upload"
+                                            >
+                                                &times;
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 3. Input de Upload e Botão Salvar */}
+                        <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4 mt-6">
+                            <div className="form-group flex-1">
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Adicionar novos banners (Máx total: {maxBanners})</label>
+                                <input 
+                                    type="file" 
+                                    multiple 
+                                    accept="image/png, image/jpeg, image/gif, image/webp"
+                                    onChange={handleBannerFileChange}
+                                    disabled={isSavingBanners || portalSettings.banner_images.length >= maxBanners}
+                                    className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                />
+                                {portalSettings.banner_images.length >= maxBanners && (
+                                    <small className="text-red-600">Você atingiu o limite de {maxBanners} banners. Remova um existente para adicionar outro.</small>
+                                )}
+                            </div>
+                            <button 
+                                onClick={handleSaveBanners}
+                                className="w-full sm:w-auto py-2 px-6 rounded-md text-sm font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-50" 
+                                disabled={isSavingBanners || (newBannerFiles.length === 0 && portalSettings.banner_images.length === (JSON.parse(localStorage.getItem('user_session') || '{}').banner_images || []).length)} // Desabilita se nada mudou
+                            >
+                                {isSavingBanners ? <><i className="fas fa-spinner fa-spin mr-2"></i>Salvando...</> : <><i className="fas fa-save mr-2"></i>Salvar Banners</>}
+                            </button>
+                        </div>
+                    </div>
+                 )}
+            </div>
+            {/* --- FIM DO CARD DE BANNERS --- */}
+
 
             {/* Cards Restantes (Acesso Dev) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -1264,46 +1523,39 @@ const TechPanelView = () => {
 
 // --- COMPONENTE PRINCIPAL DA PÁGINA (ADMINPANEL) ---
 function AdminPanel() {
-    const { user, logout } = useAuth(); // Adicionado 'logout' para uso no useEffect
+    // ✅ CORREÇÃO: Adicionado 'isLoading'
+    const { user, logout, isLoading } = useAuth(); 
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    // Estado que controla a visão
     const [currentView, setCurrentView] = useState('dashboard'); 
 
-    // Verificação de permissão
-    // Verifica se o user é policial E tem permissão de Staff/City Admin
     const hasAdminPermission = user?.type === 'policial' && (user?.permissoes?.is_staff === true || user?.permissoes?.is_city_admin === true);
     
-    // 💥 [CORREÇÃO CRUCIAL] Redirecionamento para Login Policial
+    // ✅ CORREÇÃO: Adicionada verificação 'isLoading'
     useEffect(() => {
-        // 1. Se o usuário não tem permissão de Staff/RH, e é do tipo civil, ou não está logado, redireciona
-        if (!user || user.type === 'civil' || !hasAdminPermission) {
-             
-             // Ação: Se estava logado como civil ou sem permissão, desloga (por segurança) e redireciona.
-             if (user) {
-                 toast.error("Acesso de Staff/RH deve ser feito pelo Login Policial.");
-                 logout(); // Desloga o usuário atual (pode ser um civil com token inválido)
-             }
-             
-             // Redireciona para o login policial, que é onde Staff/RH deve entrar.
-             navigate('/policia/login', { replace: true }); 
+        if (!isLoading) { // Só roda a verificação QUANDO o usuário terminar de carregar
+            if (!user || user.type === 'civil' || !hasAdminPermission) {
+                 if (user) {
+                     toast.error("Acesso de Staff/RH deve ser feito pelo Login Policial.");
+                     logout(); 
+                 }
+                 navigate('/policia/login', { replace: true }); 
+            }
         }
-    }, [user, hasAdminPermission, navigate, logout]);
+    }, [user, hasAdminPermission, navigate, logout, isLoading]); // ✅ Adicionada 'isLoading' na dependência
 
 
-    // Se o user não existe ou o efeito ainda não o validou, mostra tela de carregamento/bloqueio.
-    if (!user || user.type !== 'policial' || !hasAdminPermission) {
+    // ✅ CORREÇÃO: Mostra 'Carregando' enquanto 'isLoading' for true
+    if (isLoading || !user || user.type !== 'policial' || !hasAdminPermission) {
          return (
              <div className="flex min-h-screen items-center justify-center bg-slate-100">
-                 <div className="p-6 md:p-10 text-center text-red-700 bg-red-100 border border-red-300 rounded-lg shadow-md">
-                     <h1 className="text-2xl font-bold mb-2">Acesso Restrito</h1>
-                     <p>Autenticação necessária via Login Policial.</p>
+                 <div className="p-6 md:p-10 text-center">
+                     <p className="text-lg text-slate-600">Carregando e verificando permissões...</p>
                  </div>
              </div>
         );
     }
 
-    // Função para renderizar a visão correta
     const renderCurrentView = () => {
         switch (currentView) {
             case 'dashboard':
@@ -1325,7 +1577,6 @@ function AdminPanel() {
 
     return (
         <div className="min-h-screen bg-slate-100">
-            {/* Overlay Mobile */}
             {isMobileMenuOpen && (
                 <div
                     className="fixed inset-0 bg-black/60 z-10 md:hidden"
@@ -1334,7 +1585,6 @@ function AdminPanel() {
                 ></div>
             )}
 
-            {/* Sidebar */}
             <StaffSidebarInternal
                 currentView={currentView}
                 setView={setCurrentView}
@@ -1342,9 +1592,7 @@ function AdminPanel() {
                 closeMobileMenu={() => setIsMobileMenuOpen(false)}
             />
 
-            {/* Área de Conteúdo Principal */}
             <main className="md:pl-64 transition-all duration-300 ease-in-out">
-                {/* Botão Hamburger (só visível no mobile) */}
                  <div className="p-4 md:hidden flex justify-end sticky top-0 bg-slate-100/80 backdrop-blur-sm z-10 border-b border-slate-200">
                      <button
                         className="p-2 rounded-md text-slate-600 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -1355,7 +1603,6 @@ function AdminPanel() {
                     </button>
                  </div>
 
-                {/* Container interno com padding - Onde as visões são renderizadas */}
                 <div className="p-6 md:p-10">
                     {renderCurrentView()}
                 </div>

@@ -1,27 +1,29 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-// ✅ ATUALIZADO: Importa useLocation e useNavigate
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { toast } from 'react-toastify';
 import LocationPickerMap from '../components/LocationPickerMap.jsx'; 
-// Importa o componente de RH (assumido)
 import PainelRH from './PainelRH.jsx'; 
-
-// ✅ ADICIONADO: Importa as páginas que faltavam
 import HeatmapPage from './HeatmapPage.jsx';
 import AnaliseTendenciasPage from './AnaliseTendenciasPage.jsx';
 
-// Importa os CSS necessários (manter consistência com a estrutura CSS)
+// Importa os gráficos do Recharts
+import { 
+    AreaChart, Area, PieChart, Pie, Cell, Tooltip, Legend, 
+    ResponsiveContainer, XAxis, YAxis, CartesianGrid, Label
+} from 'recharts';
+
+// Importa os CSS necessários
 import '../components/PoliceDashboard.css';
 import '../components/AdminPage.css';
 import '../components/ListaPoliciaisPage.css';
 import '../components/PoliceProfilePage.css';
 import '../components/Timeline.css';
+import '../components/BoletimDetailPage.css'; // (Import que você adicionou)
 import '../components/ConsultaBoletins.css';
 import '../components/RelatoriosPage.css';
 import '../components/Modal.css';
 
-// --- [CORREÇÃO] Define a URL base da sua API (do server.js) ---
 const API_URL = 'http://localhost:5173';
 
 // --- ÍCONES ANIMADOS ---
@@ -41,33 +43,40 @@ const AnimatedXMark = () => (
 );
 
 // --- Componente: StatCardReports (Resumo Relatórios) ---
-const StatCardReports = ({ title, value, icon, color }) => (
-    <div className="stat-card" style={{ '--icon-color': color }}>
-        <div className="stat-card-icon"><i className={`fas ${icon}`}></i></div>
-        <div className="stat-card-info">
-            <span className="stat-card-value">{value}</span>
-            <span className="stat-card-title">{title}</span>
+const StatCardReports = ({ title, value, icon, color }) => {
+    const colorMap = {
+        '#3b82f6': '#dbeafe', // blue
+        '#f59e0b': '#fef3c7', // yellow/amber
+        '#0ea5e9': '#cffafe', // cyan
+        '#10b981': '#d1fae5', // green
+        '#6b7280': '#f3f4f6', // gray
+        '#ef4444': '#fee2e2', // red
+        '#6366f1': '#e0e7ff', // indigo
+    };
+    const bgColor = colorMap[color] || '#f1f5f9'; 
+
+    return (
+        <div className="stat-card" style={{ '--icon-color': color, '--icon-bg': bgColor }}>
+            <div className="stat-card-icon"><i className={`fas ${icon}`}></i></div>
+            <div className="stat-card-info">
+                <span className="stat-card-value">{value}</span>
+                <span className="stat-card-title">{title}</span>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 // --- Componente: Cartão de Acesso (Relatórios Estratégicos) ---
-// ✅ ATUALIZADO: O 'to' agora é tratado pelo 'onClick'
 const StrategicReportCard = ({ title, description, icon, onClick, disabled = false }) => {
-    
     const handleClickDisabled = (e) => {
         e.preventDefault(); 
         toast.info('Funcionalidade em desenvolvimento...');
     };
-
     const cardClassName = `strategic-card ${disabled ? 'disabled' : ''}`;
     const rightIcon = disabled ? 'fa-lock' : 'fa-chevron-right';
-    
-    // Define o handler de clique (seja o real ou o desabilitado)
     const handleClick = disabled ? handleClickDisabled : onClick;
 
     return (
-        // Usa um 'div' em vez de 'Link'
         <div className={cardClassName} onClick={handleClick} style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}>
             <div className="strategic-card-icon"><i className={`fas ${icon}`}></i></div>
             <div className="strategic-card-content">
@@ -380,7 +389,6 @@ const DashboardView = ({ user, token, logout, setView }) => {
                             <QuickActionButton onClick={() => setView('boletins')} icon="fa-file-signature" text="Consultar B.O.s" />
                             <QuickActionButton onClick={() => setView('policiais')} icon="fa-address-book" text="Ver Policiais" />
                             <QuickActionButton onClick={() => setView('relatorios')} icon="fa-pen-to-square" text="Relatórios" />
-                            {/* Delega a navegação para a view 'admin' */}
                             {user?.permissoes?.is_rh && (<QuickActionButton onClick={() => setView('admin')} icon="fa-user-shield" text="Administração" />)}
                         </div>
                     </div>
@@ -436,12 +444,10 @@ const ConsultaBoletinsView = ({ user, token, logout, setView }) => {
     );
 
     const handleViewClick = (boId) => {
-        // [CORREÇÃO] Passa o ID diretamente para setView
         setView('boletimDetail', { boletimId: boId, startInEditMode: false });
     };
     
     const handleEditClick = (boId, startInEdit) => {
-        // [CORREÇÃO] Passa o ID e a flag diretamente para setView
         setView('boletimDetail', { boletimId: boId, startInEditMode: startInEdit });
     };
 
@@ -490,11 +496,21 @@ const ConsultaBoletinsView = ({ user, token, logout, setView }) => {
                                                     <i className="fas fa-eye"></i>
                                                 </button>
 
-                                                {user?.corporacao === 'PC' && (
+                                                {/* ✅ 1. CORREÇÃO DE PERMISSÃO (Lista): 
+                                                    Usa 'podeAssumirBO' OU 'podeEditarBO' para mostrar o botão */}
+                                                {(user?.permissoes?.podeAssumirBO || user?.permissoes?.podeEditarBO) && (
                                                     <button
                                                         onClick={() => handleEditClick(bo.id, !!bo.policial_responsavel_id)}
                                                         className="btn-action edit"
-                                                        title={bo.policial_responsavel_id ? "Editar Boletim" : "Assumir Caso"}
+                                                        // O title muda dependendo se o BO já foi assumido
+                                                        title={bo.policial_responsavel_id ? 
+                                                                (user?.permissoes?.podeEditarBO ? "Editar Boletim" : "Ver Detalhes") 
+                                                                : (user?.permissoes?.podeAssumirBO ? "Assumir Caso" : "Ver Detalhes")}
+                                                        // Desabilita o botão se não tiver a permissão específica
+                                                        disabled={
+                                                            (bo.policial_responsavel_id && !user?.permissoes?.podeEditarBO) ||
+                                                            (!bo.policial_responsavel_id && !user?.permissoes?.podeAssumirBO)
+                                                        }
                                                     >
                                                         <i className={`fas ${bo.policial_responsavel_id ? 'fa-pencil-alt' : 'fa-gavel'}`}></i>
                                                     </button>
@@ -516,7 +532,7 @@ const ConsultaBoletinsView = ({ user, token, logout, setView }) => {
 
 // --- 3. Detalhe Boletim View (BoletimDetailPage.jsx) ---
 const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
-    const { boletimId, startInEditMode } = navProps; // Pega o ID das props
+    const { boletimId, startInEditMode } = navProps;
     const [boletim, setBoletim] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
@@ -525,10 +541,12 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
     const [error, setError] = useState(null);
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
-    const isCivil = user?.corporacao === 'PC';
+    // ✅ 2. CORREÇÃO DE PERMISSÃO (Detalhes):
+    // As permissões agora vêm do objeto 'user'
     const isResponsavelPeloCaso = boletim?.policial_responsavel_id === user?.id;
-    const podeAssumir = isCivil && boletim && !boletim.policial_responsavel_id;
-    const podeEditarCampos = isCivil && isResponsavelPeloCaso && isEditing;
+    const podeAssumir = user?.permissoes?.podeAssumirBO && boletim && !boletim.policial_responsavel_id;
+    const podeEditarCampos = user?.permissoes?.podeEditarBO && isResponsavelPeloCaso && isEditing;
+
 
     const TIPOS_OCORRENCIA = [
         "Agressão", "Ameaça", "Desacato", "Desaparecimento", "Estelionato",
@@ -547,10 +565,18 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
             if (!response.ok) { let errorMsg = `Erro ${response.status}.`; try { const d = await response.json(); errorMsg = d.message || errorMsg; } catch (e) {} throw new Error(errorMsg); }
             const data = await response.json();
             setBoletim(data);
-            setIsEditing(startInEditMode === true && data.policial_responsavel_id === user?.id);
+            
+            // ✅ 3. CORREÇÃO DE PERMISSÃO (fetchData):
+            // Só permite entrar em 'modo de edição' automaticamente se o usuário tiver a permissão
+            if (user?.permissoes?.podeEditarBO) {
+                 setIsEditing(startInEditMode === true && data.policial_responsavel_id === user?.id);
+            } else {
+                 setIsEditing(false); // Garante que esteja falso se não tiver permissão
+            }
+            
         } catch (err) { setError(`Falha ao carregar: ${err.message}`); setBoletim(null); }
         finally { setLoading(false); }
-    }, [boletimId, user?.id, logout, startInEditMode]);
+    }, [boletimId, user?.id, user?.permissoes?.podeEditarBO, logout, startInEditMode]); // Adicionada permissão
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -603,7 +629,7 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
     const removerSuspeito = (index) => { if(!podeEditarCampos) return; const novaLista = boletim.envolvidos_identificados.filter((_, i) => i !== index); setBoletim({ ...boletim, envolvidos_identificados: novaLista }); };
 
     const handleAssumirCaso = async () => {
-        if (!podeAssumir) return;
+        if (!podeAssumir) return; // Checagem de permissão já está em 'podeAssumir'
         const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
         const toastId = toast.loading("Assumindo caso...");
         try {
@@ -619,7 +645,13 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
             if (!response.ok) throw new Error(result.message || "Erro desconhecido.");
             toast.update(toastId, { render: result.message || "Caso assumido!", type: "success", isLoading: false, autoClose: 3000, icon: <AnimatedCheckmark /> });
             await fetchData();
-            setIsEditing(true);
+            
+            // ✅ 4. CORREÇÃO DE PERMISSÃO (handleAssumir):
+            // Só entra em modo de edição após assumir se também tiver permissão de editar
+            if (user?.permissoes?.podeEditarBO) {
+                setIsEditing(true);
+            }
+            
         } catch (error) {
             console.error("Erro ao assumir caso:", error);
             toast.update(toastId, { render: `Falha ao assumir: ${error.message}`, type: "error", isLoading: false, autoClose: 5000, icon: <AnimatedXMark /> });
@@ -640,10 +672,14 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
     if (!boletim) { return <div className="page-container"><h1>Boletim não encontrado.</h1><button onClick={() => setView('boletins')}>Voltar</button></div>; }
 
     const BotaoAcaoPrincipal = () => {
+        // 'podeAssumir' já inclui a verificação de permissão
         if (podeAssumir) {
             return ( <button type="button" onClick={handleAssumirCaso} className="btn-assumir"><i className="fas fa-gavel"></i> Assumir Caso</button> );
         }
-        if (isResponsavelPeloCaso && isCivil) {
+        
+        // ✅ 5. CORREÇÃO DE PERMISSÃO (Botão Editar):
+        // Troca a checagem de 'isCivil' pela permissão 'podeEditarBO'
+        if (isResponsavelPeloCaso && user?.permissoes?.podeEditarBO) {
             if (isEditing) {
                 return (
                     <div className="form-actions">
@@ -689,7 +725,7 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
                             <strong>Responsável:</strong> <span>{boletim.policial_responsavel_nome || 'N/A'} ({boletim.policial_responsavel_passaporte || 'N/A'})</span>
                             <strong>Data Assumida:</strong> <span>{boletim.data_assumido ? new Date(boletim.data_assumido).toLocaleString('pt-BR') : 'N/A'}</span>
                         </div>
-                    ) : ( <p style={{color: '#999', textAlign: 'center'}}>Aguardando Policial Civil assumir.</p> )}
+                    ) : ( <p style={{color: '#999', textAlign: 'center'}}>Aguardando Policial assumir.</p> )}
 
                     <div className="form-group">
                         <label>Status</label>
@@ -728,7 +764,7 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
                     <div style={{height: '250px', width: '100%', borderRadius: '8px', overflow: 'hidden'}}>
                         <LocationPickerMap 
                             initialCoords={currentCoords} 
-                            readOnly={true} // O mapa pequeno é só visualização
+                            readOnly={true}
                         />
                     </div>
                     {podeEditarCampos && (
@@ -844,6 +880,7 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
 
 // --- 4. Lista Policiais View (ListaPoliciaisPage.jsx) ---
 const ListaPoliciaisView = ({ user, token, logout, setView }) => {
+    // ... (Inalterado) ...
     const [policiais, setPoliciais] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -872,7 +909,6 @@ const ListaPoliciaisView = ({ user, token, logout, setView }) => {
     );
 
     const handleViewProfile = (policialId) => {
-        // [CORREÇÃO] Passa o ID diretamente para setView
         setView('profile', { policialId: policialId });
     };
 
@@ -926,6 +962,7 @@ const ListaPoliciaisView = ({ user, token, logout, setView }) => {
 
 // --- 5. Perfil Policial View (PoliceProfilePage.jsx) ---
 const ProfileView = ({ user, token, logout, setView, navProps }) => {
+    // ... (Inalterado) ...
     const profileId = navProps.policialId || user.id; 
     
     const [policial, setPolicial] = useState(null);
@@ -1077,24 +1114,31 @@ const ProfileView = ({ user, token, logout, setView, navProps }) => {
 
 // --- 6. Relatórios View (RelatoriosPage.jsx) ---
 const RelatoriosView = ({ user, token, logout, setView }) => {
-    const navigate = useNavigate();
+    // ... (Inalterado, com a correção anterior do gráfico) ...
     const [view, setInternalView] = useState('resumo'); 
     const [stats, setStats] = useState(null);
-    const [loadingStats, setLoadingStats] = useState(false);
+    const [loadingStats, setLoadingStats] = useState(true);
     const [statsError, setStatsError] = useState(null);
-
-    const initialFormData = {
+    const [tendenciasData, setTendenciasData] = useState([]);
+    const [loadingTendencias, setLoadingTendencias] = useState(true);
+    const [pieChartTotal, setPieChartTotal] = useState(0); 
+    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const initialFormData = useMemo(() => ({
         tipo_relatorio: 'Ocorrência', unidade_responsavel: user?.divisao || user?.corporacao || '',
         status: 'Em Aberto', id_ocorrencia_associada: '', local_ocorrencia: '',
         data_hora_fato: '', natureza_ocorrencia: '', descricao_detalhada: '',
         testemunhas: '', suspeitos: '', vitimas: '', veiculos_envolvidos: '',
         objetos_apreendidos: '', medidas_tomadas: '', observacoes_autor: '',
         mapa_x: null, mapa_y: null,
-    };
+    }), [user]);
+    
     const [formData, setFormData] = useState(initialFormData);
-    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitMessage, setSubmitMessage] = useState({ type: '', text: '' });
+    
+    useEffect(() => {
+        setFormData(initialFormData);
+    }, [initialFormData]);
 
     const fetchReportData = useCallback(async () => {
         if (view !== 'resumo' || !user) return;
@@ -1111,9 +1155,73 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
         } catch (err) { setStatsError(`Falha ao carregar: ${err.message}`); setStats(null); } finally { setLoadingStats(false); }
     }, [logout, view, user, token]);
 
+    const fetchTendenciasData = useCallback(async () => {
+        if (view !== 'resumo' || !token) return;
+        setLoadingTendencias(true);
+        try {
+            const response = await fetch(`${API_URL}/api/policia/relatorios/tendencias`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                if (logout && (response.status === 401 || response.status === 403)) logout();
+                throw new Error('Falha ao buscar tendências.');
+            }
+            const data = await response.json(); 
+
+            const formatarMesAno = (mesAno) => {
+                if (!mesAno || !mesAno.includes('-')) return '';
+                const [ano, mes] = mesAno.split('-');
+                const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+                return `${meses[parseInt(mes, 10) - 1]}/${ano.slice(2)}`;
+            };
+            
+            const totalPorMes = {};
+            Object.entries(data).forEach(([tipo, dadosMensais]) => {
+                dadosMensais.forEach(({ mes_ano, contagem }) => {
+                    if (!totalPorMes[mes_ano]) {
+                        totalPorMes[mes_ano] = { mes_ano, Total: 0, name: formatarMesAno(mes_ano) };
+                    }
+                    totalPorMes[mes_ano].Total += contagem;
+                });
+            });
+            const dadosGraficoTotal = Object.values(totalPorMes).sort((a, b) => a.mes_ano.localeCompare(b.mes_ano));
+            setTendenciasData(dadosGraficoTotal);
+
+        } catch (err) {
+            console.error("Erro ao buscar tendências para o dashboard", err);
+            toast.error('Não foi possível carregar o gráfico de tendências.');
+        } finally {
+            setLoadingTendencias(false);
+        }
+    }, [token, logout, view]);
+    
     useEffect(() => {
-        if (view === 'resumo' && user) { fetchReportData(); }
-    }, [user, view, fetchReportData]);
+        if (view === 'resumo' && user) {
+            fetchReportData();
+            fetchTendenciasData();
+        }
+    }, [user, view, fetchReportData, fetchTendenciasData]);
+
+    const pieChartData = useMemo(() => {
+        if (!stats || !stats.boletins) {
+            setPieChartTotal(0); 
+            return [];
+        }
+        
+        const data = [
+            { name: 'Aguardando', value: stats.boletins.aguardando || 0, color: '#f59e0b' },
+            { name: 'Investigação', value: stats.boletins.investigacao || 0, color: '#0ea5e9' },
+            { name: 'Resolvido', value: stats.boletins.resolvido || 0, color: '#10b981' },
+            { name: 'Arquivado', value: stats.boletins.arquivado || 0, color: '#6b7280' },
+            { name: 'Falso', value: stats.boletins.falso || 0, color: '#ef4444' },
+        ];
+        
+        const totalBOCalc = stats.boletins.total || data.reduce((acc, item) => acc + item.value, 0);
+        setPieChartTotal(totalBOCalc); 
+        
+        return data.filter(item => item.value > 0);
+    }, [stats]);
+
 
     const handleInputChange = (e) => {
         const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value }));
@@ -1121,11 +1229,10 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
     const handleMapClick = (coords) => {
         setFormData(prev => ({ ...prev, mapa_x: coords.x, mapa_y: coords.y, })); setIsMapModalOpen(false);
     };
-
     const handleSubmitReport = async (e) => {
         e.preventDefault();
-        setIsSubmitting(true); setSubmitMessage({ type: '', text: '' });
-        if (!token) { setSubmitMessage({ type: 'error', text: 'Erro: Token não encontrado.' }); setIsSubmitting(false); return; }
+        setIsSubmitting(true);
+        if (!token) { toast.error('Erro: Token não encontrado.'); setIsSubmitting(false); return; }
         const dataToSend = { ...formData };
         const toastId = toast.loading("Enviando relatório...");
 
@@ -1145,15 +1252,16 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
         } finally { setIsSubmitting(false); }
     };
     
-    // --- Renderização da View Interna ---
     const renderInternalView = () => {
         switch(view) {
             case 'resumo':
                 if (loadingStats) return <p className="loading-text">Carregando estatísticas...</p>;
                 if (statsError) return <p className="error-message">{statsError}</p>;
                 if (!stats) return <p className="empty-state">Não foi possível carregar as estatísticas.</p>;
+                
                 return (
                     <div className="report-view-content">
+                        {/* 1. Stat Cards (Resumo de Ocorrências) */}
                         <h2 className="content-title"><i className="fas fa-file-medical-alt"></i> Resumo de Ocorrências</h2>
                         <div className="stat-grid">
                             <StatCardReports title="Total Registrados" value={stats.boletins?.total ?? 0} icon="fa-copy" color="#3b82f6" />
@@ -1163,16 +1271,108 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
                             <StatCardReports title="Arquivados" value={stats.boletins?.arquivado ?? 0} icon="fa-archive" color="#6b7280" />
                             <StatCardReports title="Falsos" value={stats.boletins?.falso ?? 0} icon="fa-times-circle" color="#ef4444" />
                         </div>
-                        <h2 className="content-title"><i className="fas fa-history"></i> Atividade Recente (Últimos 30 Dias)</h2>
+
+                        {/* 2. Grid de Gráficos (Estilo Inspiração) */}
+                        <div className="charts-grid-container">
+                            
+                            {/* Gráfico de Área */}
+                            <div className="chart-card large-chart">
+                                <h3 className="chart-title">Ocorrências Totais (Últimos Meses)</h3>
+                                {loadingTendencias ? <p className="loading-text">Carregando gráfico...</p> : tendenciasData.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={350}>
+                                        <AreaChart data={tendenciasData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                                            <XAxis dataKey="name" stroke="#6b7280" fontSize={12} />
+                                            <YAxis allowDecimals={false} stroke="#6b7280" fontSize={12} />
+                                            <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }} />
+                                            <Area 
+                                                type="monotone" 
+                                                dataKey="Total" 
+                                                stroke="#4f46e5"
+                                                fillOpacity={1} 
+                                                fill="url(#colorTotal)" 
+                                                strokeWidth={3} 
+                                                dot={{ r: 5, strokeWidth: 2, fill: '#ffffff', stroke: '#4f46e5' }} 
+                                                activeDot={{ r: 7, strokeWidth: 2, fill: '#ffffff', stroke: '#4f46e5' }}
+                                                connectNulls={true}
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                ) : <p className="empty-state">Não há dados de meses anteriores para gerar tendências.</p>}
+                            </div>
+
+                            {/* Gráfico de Rosca (CORRIGIDO) */}
+                            <div className="chart-card small-chart">
+                                <h3 className="chart-title">Distribuição de Status (Total)</h3>
+                                {pieChartData.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height={350}>
+                                        <PieChart>
+                                            <Pie
+                                                data={pieChartData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={90} 
+                                                outerRadius={130}
+                                                fill="#8884d8"
+                                                paddingAngle={3}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                labelLine={false}
+                                                label={false}
+                                            >
+                                                {pieChartData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                            <Legend wrapperStyle={{ fontSize: '14px', paddingTop: '20px' }} />
+                                            
+                                            {pieChartData.length > 0 && (
+                                                <Label 
+                                                    content={({ viewBox }) => {
+                                                        if (viewBox && viewBox.cx && viewBox.cy) {
+                                                            const { cx, cy } = viewBox;
+                                                            return (
+                                                                <React.Fragment>
+                                                                    <text x={cx} y={cy} dy={-5} textAnchor="middle" fill="#1e293b" fontSize="2.5rem" fontWeight="bold">
+                                                                        {pieChartTotal}
+                                                                    </text>
+                                                                    <text x={cx} y={cy} dy={25} textAnchor="middle" fill="#64748b" fontSize="1rem">
+                                                                        Total de B.Os
+                                                                    </text>
+                                                                </React.Fragment>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    }} 
+                                                    position="center" 
+                                                />
+                                            )}
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                ) : <p className="empty-state">Não há boletins para exibir.</p>}
+                            </div>
+                        </div>
+
+                        {/* 3. Stat Cards (Atividade Recente) */}
+                        <h2 className="content-title" style={{marginTop: '30px'}}><i className="fas fa-history"></i> Atividade Recente (Últimos 30 Dias)</h2>
                         <div className="stat-grid">
                             <StatCardReports title="Promoções" value={stats.historico?.promocao ?? 0} icon="fa-arrow-up" color="#10b981" />
                             <StatCardReports title="Rebaixamentos" value={stats.historico?.rebaixamento ?? 0} icon="fa-arrow-down" color="#f59e0b" />
                             <StatCardReports title="Demissões" value={stats.historico?.demissao ?? 0} icon="fa-user-slash" color="#ef4444" />
                             <StatCardReports title="Novos Alistamentos" value={stats.historico?.aprovacao ?? 0} icon="fa-user-plus" color="#0ea5e9" />
                         </div>
+
+                        {/* 4. Stat Cards (Efetivo RH) */}
                         {user?.permissoes?.is_rh && (
                             <>
-                                <h2 className="content-title"><i className="fas fa-users-cog"></i> Resumo de Efetivo (RH)</h2>
+                                <h2 className="content-title" style={{marginTop: '30px'}}><i className="fas fa-users-cog"></i> Resumo de Efetivo (RH)</h2>
                                 <div className="stat-grid">
                                     <StatCardReports title="Efetivo PM" value={stats.efetivo?.PM ?? 0} icon="fa-shield-alt" color="#ef4444" />
                                     <StatCardReports title="Efetivo PC" value={stats.efetivo?.PC ?? 0} icon="fa-user-secret" color="#3b82f6" />
@@ -1191,30 +1391,29 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
                             Acesse relatórios detalhados e análises estratégicas para auxiliar na tomada de decisão.
                         </p>
                         <div className="strategic-grid">
-                            {/* ✅ ATUALIZADO: Usa onClick e setView em vez de 'to' */}
                             <StrategicReportCard
                                 title="Relatório de Criminalidade"
                                 description="Análise de tipos de crime, comparativos mensais e mapas de calor."
                                 icon="fa-map-marked-alt"
-                                onClick={() => setView('heatmap')} // Navega para 'heatmap'
+                                onClick={() => setView('heatmap')}
                             />
                              <StrategicReportCard
                                 title="Análise de Tendências"
                                 description="Identifique aumentos ou diminuições em atividades criminosas específicas."
                                 icon="fa-chart-line"
-                                onClick={() => setView('trends')} // Navega para 'trends'
+                                onClick={() => setView('trends')}
                             />
                             <StrategicReportCard
                                 title="Relatório de Eficiência Operacional"
                                 description="Tempo médio de resposta, taxa de solução de casos e performance."
                                 icon="fa-tachometer-alt"
-                                to="#" disabled={true} 
+                                disabled={true} 
                             />
                             <StrategicReportCard
                                 title="Produtividade por Unidade"
                                 description="Compare o desempenho entre diferentes divisões, distritos e corporações."
                                 icon="fa-sitemap"
-                                to="#" disabled={true}
+                                disabled={true}
                             />
                         </div>
                     </div>
@@ -1321,7 +1520,6 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
                                         />
                                     </div>
                                 </fieldset>
-                                {submitMessage.text && ( <p className={`submit-message ${submitMessage.type}`}>{submitMessage.text}</p> )}
                                 <button type="submit" className="submit-button" disabled={isSubmitting}>
                                     <i className={`fas ${isSubmitting ? 'fa-spinner fa-spin' : 'fa-save'}`}></i>
                                     {isSubmitting ? 'Salvando...' : 'Salvar Relatório'}
@@ -1343,7 +1541,7 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
     };
     
     return (
-        <div className="page-container reports-page" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 80px)' }}>
+        <div className="page-container reports-page" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)' }}>
             <header className="report-header" style={{ flexShrink: 0 }}>
                 <h1 className="page-title">Central de Relatórios</h1>
                 <nav className="report-nav">
@@ -1369,42 +1567,34 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
 // --- [INÍCIO] COMPONENTE PRINCIPAL (PAINEL POLICIA) ---
 const PainelPolicia = () => {
     const { user, token, logout } = useAuth();
-    // ✅ ATUALIZADO: usa useNavigate e useLocation
     const navigate = useNavigate();
     const location = useLocation();
     
-    // --- Estado de Navegação Interna ---
-    // ✅ ATUALIZADO: O estado inicial agora é 'loading'
     const [currentView, setCurrentView] = useState('loading');
     const [navProps, setNavProps] = useState({});
-
-    // --- Estado de Modais Policiais ---
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);
     
-    // ✅ NOVO: useEffect para ler a URL na inicialização e em mudanças
     useEffect(() => {
         const path = location.pathname;
         
-        // Mapeia a URL para a view interna
         if (path === '/policia/dashboard' || path === '/policia' || path === '/policia/') {
             setCurrentView('dashboard');
         } else if (path === '/policia/boletins') {
             setCurrentView('boletins');
-        } else if (path.startsWith('/policia/boletim/')) { // Para detalhes
+        } else if (path.startsWith('/policia/boletim/')) {
             const id = path.split('/')[3];
             setCurrentView('boletimDetail');
             setNavProps({ boletimId: id, startInEditMode: location.state?.startInEditMode || false });
         } else if (path === '/policia/policiais') {
             setCurrentView('policiais');
-        } else if (path.startsWith('/policia/perfil/')) { // Para perfil
-            const id = path.split('/')[3] || (user ? user.id : null); // Se /policia/perfil/ (sem id), usa o do user
-            if(id) { // Só define a view se tiver um ID (do user ou da URL)
+        } else if (path.startsWith('/policia/perfil/')) {
+            const id = path.split('/')[3] || (user ? user.id : null);
+            if(id) { 
                 setCurrentView('profile');
                 setNavProps({ policialId: id });
             } else {
-                // Se não tiver ID e não tiver user, volta pro dashboard
                 setCurrentView('dashboard');
-                if (location.pathname !== '/policia/dashboard') { // Evita loop
+                if (location.pathname !== '/policia/dashboard') { 
                     navigate('/policia/dashboard', { replace: true });
                 }
             }
@@ -1415,26 +1605,20 @@ const PainelPolicia = () => {
         } else if (path === '/policia/logs') {
             setCurrentView('logs');
         }
-        // ✅ NOVAS ROTAS DE RELATÓRIO
         else if (path === '/policia/relatorios/criminalidade') {
             setCurrentView('heatmap');
         } else if (path === '/policia/relatorios/tendencias') {
             setCurrentView('trends');
         }
         else {
-            // Se a URL não for reconhecida, volta para o dashboard
             setCurrentView('dashboard');
-            if (location.pathname !== '/policia/dashboard') { // Evita loop
+            if (location.pathname !== '/policia/dashboard') {
                 navigate('/policia/dashboard', { replace: true });
             }
         }
-    }, [location.pathname, user, navigate]); // Depende da URL e do usuário (para o ID do perfil)
+    }, [location.pathname, user, navigate]);
 
-    // --- Funções de Navegação Interna (Centralizada) ---
-    // ✅ ATUALIZADO: setView agora também atualiza a URL
     const setView = useCallback((view, props = {}) => {
-        
-        // Mapeia o estado interno para a URL
         let newPath = '/policia/dashboard';
         if (view === 'boletimDetail') {
             newPath = `/policia/boletim/${props.boletimId}`;
@@ -1448,34 +1632,28 @@ const PainelPolicia = () => {
             newPath = `/policia/${view}`;
         }
 
-        // Se a URL já for a correta, apenas atualiza o estado (raro, mas evita loop)
         if (location.pathname === newPath) {
              setCurrentView(view);
              setNavProps(props);
         } else {
-            // Navega para a nova URL. O useEffect acima vai detectar a mudança e atualizar o state.
             navigate(newPath, { state: props });
         }
     }, [navigate, location.pathname]);
 
-    // --- Renderização da View Correta ---
     const renderView = () => {
-        // Verifica se a view é de RH/Admin/Logs (Delegada ao PainelRH)
         if (user?.permissoes?.is_rh && (currentView === 'admin' || currentView === 'logs')) {
              return (
-                /* eslint-disable-next-line no-undef */
                 <PainelRH
                     user={user}
                     token={token}
                     logout={logout}
                     currentView={currentView}
-                    setView={setView} // Passa o setView atualizado
+                    setView={setView} 
                     navProps={navProps}
                 />
             );
         }
 
-        // Caso contrário, renderiza as views da Polícia
         switch (currentView) {
             case 'dashboard':
                 return <DashboardView user={user} token={token} logout={logout} setView={setView} />;
@@ -1489,26 +1667,21 @@ const PainelPolicia = () => {
                 return <ProfileView user={user} token={token} logout={logout} setView={setView} navProps={navProps} />;
             case 'relatorios':
                 return <RelatoriosView user={user} token={token} logout={logout} setView={setView} />;
-            
-            // ✅ ADICIONADO: Renderiza as páginas de análise
             case 'heatmap':
                 return <HeatmapPage />;
             case 'trends':
                 return <AnaliseTendenciasPage />;
-
             default:
-                // Se o estado for 'loading' ou desconhecido, mostra o dashboard (ou um spinner)
                 return <DashboardView user={user} token={token} logout={logout} setView={setView} />;
         }
     };
 
-    // ✅ ADICIONADO: Estado de loading enquanto a URL é processada
     if (currentView === 'loading') {
         return (
             <div className="police-dashboard-container">
                 <PainelPoliciaSidebar 
                     currentView={currentView} 
-                    setView={() => {}} // Não faz nada enquanto carrega
+                    setView={() => {}} 
                     onReportBugClick={() => setIsBugModalOpen(true)} 
                     user={user} 
                     logout={logout} 
@@ -1525,7 +1698,6 @@ const PainelPolicia = () => {
     return (
         <>
             <div className="police-dashboard-container">
-                {/* Sidebar */}
                 <PainelPoliciaSidebar 
                     currentView={currentView} 
                     setView={setView} 
@@ -1538,7 +1710,6 @@ const PainelPolicia = () => {
                 </main>
             </div>
             
-            {/* Renderiza o modal de Bug (Polícia) */}
             <ReportBugModal 
                 isOpen={isBugModalOpen}
                 onClose={() => setIsBugModalOpen(false)}
@@ -1550,14 +1721,10 @@ const PainelPolicia = () => {
 };
 
 // --- [INÍCIO] COMPONENTE SIDEBAR (INTERNALIZADO) ---
-// ✅ ATUALIZADO: NavButton agora usa <a> e navega
 const PainelPoliciaSidebar = ({ currentView, setView, onReportBugClick, user, logout }) => {
     const userInitial = user?.nome_completo ? user.nome_completo[0].toUpperCase() : '?';
 
-    // O setView agora é o nosso navegador interno
     const NavButton = ({ viewName, icon, text }) => {
-        // ✅ ATUALIZADO: Lógica de Ativação
-        // Trata 'relatorios' como ativo se 'heatmap' ou 'trends' estiverem ativos
         let isActive = currentView === viewName;
         if (viewName === 'relatorios' && (currentView === 'heatmap' || currentView === 'trends')) {
             isActive = true;
@@ -1566,7 +1733,7 @@ const PainelPoliciaSidebar = ({ currentView, setView, onReportBugClick, user, lo
         return (
             <button 
                 onClick={() => setView(viewName)} 
-                className={isActive ? 'active' : ''}
+                className={`sidebar-nav-button ${isActive ? 'active' : ''}`}
             >
                 <i className={`fas ${icon}`}></i> 
                 <span>{text}</span>
@@ -1594,7 +1761,6 @@ const PainelPoliciaSidebar = ({ currentView, setView, onReportBugClick, user, lo
 
             <div className="sidebar-footer">
                 {user && (
-                    // ✅ ATUALIZADO: Usa setView para ir ao perfil
                     <button onClick={() => setView('profile', { policialId: user.id })} className="sidebar-profile-vertical">
                         <div className="profile-avatar-large">
                             <span>{userInitial}</span>

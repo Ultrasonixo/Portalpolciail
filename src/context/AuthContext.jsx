@@ -1,4 +1,4 @@
-// src/context/AuthContext.jsx - VERSÃO FINAL (COM isLoading)
+// src/context/AuthContext.jsx - VERSÃO ATUALIZADA COM updateUserPermissions
 
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -6,11 +6,8 @@ import { useNavigate } from 'react-router-dom';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null); // Inicia como null
-    const [token, setToken] = useState(null); // Inicia como null
-    
-    // ✅ 1. O ESTADO DE CARREGAMENTO
-    // Começa como 'true' para indicar que estamos verificando o localStorage
+    const [user, setUser] = useState(null); 
+    const [token, setToken] = useState(null); 
     const [isLoading, setIsLoading] = useState(true); 
     
     const navigate = useNavigate();
@@ -25,54 +22,44 @@ export const AuthProvider = ({ children }) => {
                 setToken(storedToken);
                 setUser(JSON.parse(storedUser));
             } catch (e) {
-                localStorage.clear(); // Limpa se estiver corrompido
+                localStorage.clear(); 
                 setToken(null);
                 setUser(null);
             }
-        } else {
         }
-        
-        // ✅ 2. AVISA QUE TERMINOU A VERIFICAÇÃO INICIAL
         setIsLoading(false); 
-    }, []); // Array vazio [] = roda só no mount
+    }, []);
 
     // Função Login
-    // src/context/AuthContext.jsx
+    const login = useCallback((userData, userType) => {
+        // Pega 'policial' (do login policial) OU 'usuario' (do login civil)
+        const { token, policial, usuario } = userData; 
+        const userInfo = policial || usuario; // Pega o objeto que existir
 
-const login = useCallback((userData, userType) => {
-    // ✅ CORREÇÃO: Pega 'policial' OU 'usuario' da resposta
-    const { token, policial, usuario } = userData; 
-    const userInfo = policial || usuario; // Pega o objeto que existir
+        if (!userInfo) {
+            console.error("AuthContext: Objeto 'policial' ou 'usuario' não encontrado na resposta de login.");
+            localStorage.clear();
+            setToken(null);
+            setUser(null);
+            return;
+        }
 
-    // Verifica se userInfo foi encontrado
-    if (!userInfo) {
-        // Você pode querer limpar o localStorage aqui também por segurança
-        localStorage.clear();
-        setToken(null);
-        setUser(null);
-        setIsLoading(false); // Garante que parou de carregar
-        return; // Interrompe a função
-    }
+        const sessionData = {
+            ...userInfo, // Espalha os dados (id, nome, permissoes, etc.)
+            type: userType, // Adiciona o tipo (civil ou policial)
+        };
 
-    const sessionData = {
-        ...userInfo, // Espalha os dados (id, nome, etc.)
-        type: userType, // Adiciona o tipo (civil ou policial)
-    };
+        if (token) {
+             localStorage.setItem('authToken', token);
+             setToken(token);
+        } else {
+             localStorage.removeItem('authToken'); 
+             setToken(null);
+        }
 
-    // Salva token se existir (para policial)
-    if (token) {
-         localStorage.setItem('authToken', token);
-         setToken(token);
-    } else {
-         // Limpa token antigo se logando como civil (que não usa token no estado)
-         localStorage.removeItem('authToken'); 
-         setToken(null);
-    }
-
-    localStorage.setItem('user_session', JSON.stringify(sessionData));
-    setUser(sessionData); // Salva o objeto 'sessionData' no estado 'user'
-    // setIsLoading(false); // Já é feito no useEffect inicial
-    }, []); // Removido token e user das dependências, login é estável
+        localStorage.setItem('user_session', JSON.stringify(sessionData));
+        setUser(sessionData); 
+    }, []); 
 
     // Função Logout
     const logout = useCallback(() => {
@@ -80,19 +67,46 @@ const login = useCallback((userData, userType) => {
         localStorage.removeItem('authToken');
         setUser(null);
         setToken(null); 
-        navigate('/loginPolicial'); // Ou para onde você quiser redirecionar
+        navigate('/'); // Redireciona para a home (ou /login se preferir)
     }, [navigate]);
+
+    // ✅ --- NOVA FUNÇÃO ---
+    // Esta função permite que um componente atualize as permissões
+    // do usuário logado (ex: o AdminPanel atualizando o próprio user)
+    const updateUserPermissions = useCallback((newPermissions) => {
+        setUser(currentUser => {
+            if (!currentUser) return null; // Não faz nada se não houver usuário
+
+            // 1. Combina as permissões antigas com as novas
+            const mergedPermissions = {
+                ...currentUser.permissoes,
+                ...newPermissions
+            };
+
+            // 2. Cria o novo objeto de sessão
+            const newSessionData = {
+                ...currentUser,
+                permissoes: mergedPermissions
+            };
+
+            // 3. Atualiza o localStorage para persistir a mudança
+            localStorage.setItem('user_session', JSON.stringify(newSessionData));
+
+            // 4. Retorna o novo estado
+            return newSessionData;
+        });
+    }, []); // Sem dependências, é estável
 
     // O valor compartilhado
     const value = React.useMemo(() => ({
         user,
         token,
-        isLoading, // ✅ 3. Fornece o isLoading
+        isLoading, 
         login,
-        logout
-    }), [user, token, isLoading, login, logout]); // Adiciona isLoading às dependências
+        logout,
+        updateUserPermissions // ✅ 4. Disponibiliza a nova função
+    }), [user, token, isLoading, login, logout, updateUserPermissions]); // Adiciona a nova função
 
-    // Renderiza os filhos (o resto do App)
     return (
         <AuthContext.Provider value={value}>
             {children}
