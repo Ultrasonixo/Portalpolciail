@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+// ✅ ATUALIZADO: Importa useLocation e useNavigate
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { toast } from 'react-toastify';
 import LocationPickerMap from '../components/LocationPickerMap.jsx'; 
 // Importa o componente de RH (assumido)
 import PainelRH from './PainelRH.jsx'; 
+
+// ✅ ADICIONADO: Importa as páginas que faltavam
+import HeatmapPage from './HeatmapPage.jsx';
+import AnaliseTendenciasPage from './AnaliseTendenciasPage.jsx';
 
 // Importa os CSS necessários (manter consistência com a estrutura CSS)
 import '../components/PoliceDashboard.css';
@@ -17,7 +22,7 @@ import '../components/RelatoriosPage.css';
 import '../components/Modal.css';
 
 // --- [CORREÇÃO] Define a URL base da sua API (do server.js) ---
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:5173';
 
 // --- ÍCONES ANIMADOS ---
 const AnimatedCheckmark = () => (
@@ -47,7 +52,8 @@ const StatCardReports = ({ title, value, icon, color }) => (
 );
 
 // --- Componente: Cartão de Acesso (Relatórios Estratégicos) ---
-const StrategicReportCard = ({ title, description, icon, to, disabled = false }) => {
+// ✅ ATUALIZADO: O 'to' agora é tratado pelo 'onClick'
+const StrategicReportCard = ({ title, description, icon, onClick, disabled = false }) => {
     
     const handleClickDisabled = (e) => {
         e.preventDefault(); 
@@ -56,29 +62,20 @@ const StrategicReportCard = ({ title, description, icon, to, disabled = false })
 
     const cardClassName = `strategic-card ${disabled ? 'disabled' : ''}`;
     const rightIcon = disabled ? 'fa-lock' : 'fa-chevron-right';
-
-    if (disabled) {
-        return (
-            <div className={cardClassName} onClick={handleClickDisabled}>
-                <div className="strategic-card-icon"><i className={`fas ${icon}`}></i></div>
-                <div className="strategic-card-content">
-                    <h3 className="strategic-card-title">{title}</h3>
-                    <p className="strategic-card-description">{description}</p>
-                </div>
-                <div className="strategic-card-arrow"><i className={`fas ${rightIcon}`}></i></div>
-            </div>
-        );
-    }
+    
+    // Define o handler de clique (seja o real ou o desabilitado)
+    const handleClick = disabled ? handleClickDisabled : onClick;
 
     return (
-        <Link to={to} className={cardClassName}>
+        // Usa um 'div' em vez de 'Link'
+        <div className={cardClassName} onClick={handleClick} style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}>
             <div className="strategic-card-icon"><i className={`fas ${icon}`}></i></div>
             <div className="strategic-card-content">
                 <h3 className="strategic-card-title">{title}</h3>
                 <p className="strategic-card-description">{description}</p>
             </div>
             <div className="strategic-card-arrow"><i className={`fas ${rightIcon}`}></i></div>
-        </Link>
+        </div>
     );
 };
 
@@ -1194,18 +1191,18 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
                             Acesse relatórios detalhados e análises estratégicas para auxiliar na tomada de decisão.
                         </p>
                         <div className="strategic-grid">
-                            {/* Links para rotas externas (Heatmap e Trends) */}
+                            {/* ✅ ATUALIZADO: Usa onClick e setView em vez de 'to' */}
                             <StrategicReportCard
                                 title="Relatório de Criminalidade"
                                 description="Análise de tipos de crime, comparativos mensais e mapas de calor."
                                 icon="fa-map-marked-alt"
-                                to="/policia/relatorios/criminalidade" // Rota externa
+                                onClick={() => setView('heatmap')} // Navega para 'heatmap'
                             />
                              <StrategicReportCard
                                 title="Análise de Tendências"
                                 description="Identifique aumentos ou diminuições em atividades criminosas específicas."
                                 icon="fa-chart-line"
-                                to="/policia/relatorios/tendencias" // Rota externa
+                                onClick={() => setView('trends')} // Navega para 'trends'
                             />
                             <StrategicReportCard
                                 title="Relatório de Eficiência Operacional"
@@ -1372,19 +1369,94 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
 // --- [INÍCIO] COMPONENTE PRINCIPAL (PAINEL POLICIA) ---
 const PainelPolicia = () => {
     const { user, token, logout } = useAuth();
+    // ✅ ATUALIZADO: usa useNavigate e useLocation
+    const navigate = useNavigate();
+    const location = useLocation();
     
     // --- Estado de Navegação Interna ---
-    const [currentView, setCurrentView] = useState('dashboard');
+    // ✅ ATUALIZADO: O estado inicial agora é 'loading'
+    const [currentView, setCurrentView] = useState('loading');
     const [navProps, setNavProps] = useState({});
 
     // --- Estado de Modais Policiais ---
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);
     
+    // ✅ NOVO: useEffect para ler a URL na inicialização e em mudanças
+    useEffect(() => {
+        const path = location.pathname;
+        
+        // Mapeia a URL para a view interna
+        if (path === '/policia/dashboard' || path === '/policia' || path === '/policia/') {
+            setCurrentView('dashboard');
+        } else if (path === '/policia/boletins') {
+            setCurrentView('boletins');
+        } else if (path.startsWith('/policia/boletim/')) { // Para detalhes
+            const id = path.split('/')[3];
+            setCurrentView('boletimDetail');
+            setNavProps({ boletimId: id, startInEditMode: location.state?.startInEditMode || false });
+        } else if (path === '/policia/policiais') {
+            setCurrentView('policiais');
+        } else if (path.startsWith('/policia/perfil/')) { // Para perfil
+            const id = path.split('/')[3] || (user ? user.id : null); // Se /policia/perfil/ (sem id), usa o do user
+            if(id) { // Só define a view se tiver um ID (do user ou da URL)
+                setCurrentView('profile');
+                setNavProps({ policialId: id });
+            } else {
+                // Se não tiver ID e não tiver user, volta pro dashboard
+                setCurrentView('dashboard');
+                if (location.pathname !== '/policia/dashboard') { // Evita loop
+                    navigate('/policia/dashboard', { replace: true });
+                }
+            }
+        } else if (path === '/policia/relatorios') {
+            setCurrentView('relatorios');
+        } else if (path === '/policia/admin') {
+            setCurrentView('admin');
+        } else if (path === '/policia/logs') {
+            setCurrentView('logs');
+        }
+        // ✅ NOVAS ROTAS DE RELATÓRIO
+        else if (path === '/policia/relatorios/criminalidade') {
+            setCurrentView('heatmap');
+        } else if (path === '/policia/relatorios/tendencias') {
+            setCurrentView('trends');
+        }
+        else {
+            // Se a URL não for reconhecida, volta para o dashboard
+            setCurrentView('dashboard');
+            if (location.pathname !== '/policia/dashboard') { // Evita loop
+                navigate('/policia/dashboard', { replace: true });
+            }
+        }
+    }, [location.pathname, user, navigate]); // Depende da URL e do usuário (para o ID do perfil)
+
     // --- Funções de Navegação Interna (Centralizada) ---
+    // ✅ ATUALIZADO: setView agora também atualiza a URL
     const setView = useCallback((view, props = {}) => {
-        setCurrentView(view);
-        setNavProps(props);
-    }, []);
+        
+        // Mapeia o estado interno para a URL
+        let newPath = '/policia/dashboard';
+        if (view === 'boletimDetail') {
+            newPath = `/policia/boletim/${props.boletimId}`;
+        } else if (view === 'profile') {
+            newPath = `/policia/perfil/${props.policialId}`;
+        } else if (view === 'heatmap') {
+            newPath = '/policia/relatorios/criminalidade';
+        } else if (view === 'trends') {
+            newPath = '/policia/relatorios/tendencias';
+        } else if (view !== 'dashboard') {
+            newPath = `/policia/${view}`;
+        }
+
+        // Se a URL já for a correta, apenas atualiza o estado (raro, mas evita loop)
+        if (location.pathname === newPath) {
+             setCurrentView(view);
+             setNavProps(props);
+        } else {
+            // Navega para a nova URL. O useEffect acima vai detectar a mudança e atualizar o state.
+            navigate(newPath, { state: props });
+        }
+    }, [navigate, location.pathname]);
 
     // --- Renderização da View Correta ---
     const renderView = () => {
@@ -1397,7 +1469,7 @@ const PainelPolicia = () => {
                     token={token}
                     logout={logout}
                     currentView={currentView}
-                    setView={setView}
+                    setView={setView} // Passa o setView atualizado
                     navProps={navProps}
                 />
             );
@@ -1408,21 +1480,47 @@ const PainelPolicia = () => {
             case 'dashboard':
                 return <DashboardView user={user} token={token} logout={logout} setView={setView} />;
             case 'boletins':
-                // [CORREÇÃO] setNavProps removido da assinatura das views internas
                 return <ConsultaBoletinsView user={user} token={token} logout={logout} setView={setView} />;
             case 'boletimDetail':
                 return <BoletimDetailView user={user} token={token} logout={logout} setView={setView} navProps={navProps} />;
             case 'policiais':
-                // [CORREÇÃO] setNavProps removido da assinatura das views internas
                 return <ListaPoliciaisView user={user} token={token} logout={logout} setView={setView} />;
             case 'profile':
                 return <ProfileView user={user} token={token} logout={logout} setView={setView} navProps={navProps} />;
             case 'relatorios':
                 return <RelatoriosView user={user} token={token} logout={logout} setView={setView} />;
+            
+            // ✅ ADICIONADO: Renderiza as páginas de análise
+            case 'heatmap':
+                return <HeatmapPage />;
+            case 'trends':
+                return <AnaliseTendenciasPage />;
+
             default:
+                // Se o estado for 'loading' ou desconhecido, mostra o dashboard (ou um spinner)
                 return <DashboardView user={user} token={token} logout={logout} setView={setView} />;
         }
     };
+
+    // ✅ ADICIONADO: Estado de loading enquanto a URL é processada
+    if (currentView === 'loading') {
+        return (
+            <div className="police-dashboard-container">
+                <PainelPoliciaSidebar 
+                    currentView={currentView} 
+                    setView={() => {}} // Não faz nada enquanto carrega
+                    onReportBugClick={() => setIsBugModalOpen(true)} 
+                    user={user} 
+                    logout={logout} 
+                />
+                <main className="main-content">
+                    <div className="page-container">
+                        <p style={{textAlign: 'center', fontSize: '1.2rem', color: '#64748b'}}>Carregando...</p>
+                    </div>
+                </main>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -1452,11 +1550,19 @@ const PainelPolicia = () => {
 };
 
 // --- [INÍCIO] COMPONENTE SIDEBAR (INTERNALIZADO) ---
+// ✅ ATUALIZADO: NavButton agora usa <a> e navega
 const PainelPoliciaSidebar = ({ currentView, setView, onReportBugClick, user, logout }) => {
     const userInitial = user?.nome_completo ? user.nome_completo[0].toUpperCase() : '?';
 
+    // O setView agora é o nosso navegador interno
     const NavButton = ({ viewName, icon, text }) => {
-        const isActive = currentView === viewName;
+        // ✅ ATUALIZADO: Lógica de Ativação
+        // Trata 'relatorios' como ativo se 'heatmap' ou 'trends' estiverem ativos
+        let isActive = currentView === viewName;
+        if (viewName === 'relatorios' && (currentView === 'heatmap' || currentView === 'trends')) {
+            isActive = true;
+        }
+
         return (
             <button 
                 onClick={() => setView(viewName)} 
@@ -1488,6 +1594,7 @@ const PainelPoliciaSidebar = ({ currentView, setView, onReportBugClick, user, lo
 
             <div className="sidebar-footer">
                 {user && (
+                    // ✅ ATUALIZADO: Usa setView para ir ao perfil
                     <button onClick={() => setView('profile', { policialId: user.id })} className="sidebar-profile-vertical">
                         <div className="profile-avatar-large">
                             <span>{userInitial}</span>
@@ -1512,3 +1619,4 @@ const PainelPoliciaSidebar = ({ currentView, setView, onReportBugClick, user, lo
 };
 
 export default PainelPolicia;
+

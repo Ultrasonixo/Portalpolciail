@@ -8,7 +8,7 @@ import LogDetails from '../../components/LogDetails.jsx';
 import '../../components/design/LogsPage.css'; // Ajuste o caminho se você moveu
 
 // --- [CORREÇÃO] Define a URL base da sua API (do server.js) ---
-const API_URL = 'http://localhost:3000'; 
+const API_URL = 'http://localhost:5173'; 
 
 // --- [INÍCIO] COMPONENTE DA SIDEBAR ---
 const StaffSidebarInternal = ({ currentView, setView, isMobileMenuOpen, closeMobileMenu }) => {

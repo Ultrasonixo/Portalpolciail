@@ -42,7 +42,7 @@ const AddChangelogModal = ({ isOpen, onClose }) => {
         const toastId = toast.loading("Salvando entrada...");
 
         try {
-            const response = await fetch('http://localhost:3000/api/admin/changelog', {
+            const response = await fetch('/api/admin/changelog', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

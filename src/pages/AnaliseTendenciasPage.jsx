@@ -132,7 +132,7 @@ const AnaliseTendenciasPage = () => {
                 // Simulação de delay para ver o spinner
                 // await new Promise(resolve => setTimeout(resolve, 1000)); 
 
-                const response = await fetch('api/policia/relatorios/tendencias', {
+                const response = await fetch('/api/policia/relatorios/tendencias', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) {

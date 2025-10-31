@@ -82,7 +82,7 @@ const HeatmapPage = () => {
             setLoading(true); setError(null);
             if (!token) { setError('Token não encontrado.'); setLoading(false); return; }
             try {
-                const response = await fetch('http://localhost:3000/api/crimes/heatmap-data', { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await fetch('/api/crimes/heatmap-data', { headers: { 'Authorization': `Bearer ${token}` } });
                 if (response.status === 401 || response.status === 403) { if (logout) logout(); throw new Error('Sessão inválida.'); }
                 if (!response.ok) throw new Error(`Erro ${response.status} ao buscar dados.`);
                 const data = await response.json();

@@ -55,7 +55,7 @@ function RegisterForm() {
         setIsLoading(true);
 
         // Cria a promessa para o toast.promise
-        const registerPromise = fetch('https://cnopol.vertexsystem.com.br/api/auth/register', { // Use a URL correta da sua API
+        const registerPromise = fetch('/api/auth/register', { // Use a URL correta da sua API
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...formData, recaptchaToken }),

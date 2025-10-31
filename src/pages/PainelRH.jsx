@@ -5,7 +5,7 @@ import LogDetails from '../components/LogDetails.jsx'; // LogsView depende disso
 import { Link } from 'react-router-dom'; // Necessário para links dentro dos modais
 
 // --- [CORREÇÃO] Define a URL base da sua API ---
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:5173';
 
 // --- ÍCONES ANIMADOS (Necessários para os modais) ---
 const AnimatedCheckmark = () => (

@@ -67,7 +67,7 @@ function BoletimForm({ user, token }) {
         }
 
         try {
-            const response = await fetch('http://localhost:3000/api/boletim/registrar', {
+            const response = await fetch('/api/boletim/registrar', {
                 method: 'POST',
                  headers: {
                     // NÃO defina Content-Type ao enviar FormData

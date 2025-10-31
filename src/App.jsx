@@ -53,6 +53,7 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/recuperar-senha" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/juridico" element={<JuridicoPage />} />
           <Route path="/concursos" element={<ConcursosPage />} />
@@ -117,7 +118,6 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
        {/* AntiDevTools pode ser mantido se desejado */}
-       
        
     </>
   );

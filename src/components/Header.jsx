@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 // Define a URL base da sua API (do server.js)
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:5173';
 
 function Header() {
     const { user, logout } = useAuth();

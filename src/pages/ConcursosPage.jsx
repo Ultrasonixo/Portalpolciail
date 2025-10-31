@@ -10,7 +10,7 @@ function ConcursosPage() {
     useEffect(() => {
         const fetchConcursos = async () => {
             try {
-                const response = await fetch('http://localhost:3000/api/concursos');
+                const response = await fetch('/api/concursos');
                 if (!response.ok) {
                     throw new Error('Não foi possível buscar os concursos.');
                 }

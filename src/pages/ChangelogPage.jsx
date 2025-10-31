@@ -17,7 +17,7 @@ const ChangelogPage = () => {
             setError(null);
             try {
                 // Rota pública (ou ajuste se precisar de autenticação para ver)
-                const response = await fetch('http://localhost:3000/api/changelog');
+                const response = await fetch('/api/changelog');
                 if (!response.ok) {
                     throw new Error('Falha ao carregar o changelog.');
                 }

@@ -8,7 +8,7 @@ const AnunciosWidget = () => {
     useEffect(() => {
         const fetchAnuncios = async () => {
             try {
-                const response = await fetch('http://localhost:3000/api/anuncios');
+                const response = await fetch('/api/anuncios');
                 const data = await response.json();
                 setAnuncios(data);
             } catch (error) {

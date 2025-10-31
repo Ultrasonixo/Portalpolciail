@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 // Define a URL base da sua API (do server.js)
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:5173';
 
 function Footer() {
     const { user } = useAuth();
@@ -71,9 +71,6 @@ function Footer() {
                         <div className="flex gap-4 mt-5 justify-center md:justify-start">
                             <a href="https://discord.gg/cno" target="_blank" rel="noopener noreferrer" className="text-white text-2xl transition-all duration-300 hover:text-yellow-400 hover:-translate-y-1">
                                 <i className="fab fa-discord"></i>
-                            </a>
-                            <a href="#" target="_blank" rel="noopener noreferrer" className="text-white text-2xl transition-all duration-300 hover:text-yellow-400 hover:-translate-y-1">
-                                <i className="fab fa-twitter"></i>
                             </a>
                             <a href="#" target="_blank" rel="noopener noreferrer" className="text-white text-2xl transition-all duration-300 hover:text-yellow-400 hover:-translate-y-1">
                                 <i className="fab fa-youtube"></i>
