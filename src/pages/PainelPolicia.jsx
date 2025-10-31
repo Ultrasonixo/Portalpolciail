@@ -1619,4 +1619,3 @@ const PainelPoliciaSidebar = ({ currentView, setView, onReportBugClick, user, lo
 };
 
 export default PainelPolicia;
-
