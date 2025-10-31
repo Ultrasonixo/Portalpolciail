@@ -4,9 +4,28 @@ import { Link, useNavigate, NavLink } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion'; 
 import LogDetails from '../../components/LogDetails.jsx';
-import '../../components/design/LogsPage.css'; 
 
-const API_URL = 'http://localhost:5173'; 
+// Importa os estilos de CSS necessários
+import '../../components/design/LogsPage.css'; // Para LogsView
+import '../../components/Modal.css'; // Estilo dos Modais
+import '../../components/GerenciarPolicialModal.css'; // Estilo da barra de busca
+import '../../components/PoliceDashboard.css'; // Para estilos de tabela (recrutas-table)
+
+// --- ÍCONES ANIMADOS (Para Toasts) ---
+const AnimatedCheckmark = () => (
+    <svg className="toast-icon-svg checkmark-svg" viewBox="0 0 52 52">
+      <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+      <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+    </svg>
+);
+const AnimatedXMark = () => (
+    <svg className="toast-icon-svg xmark-svg" viewBox="0 0 52 52">
+      <g transform="translate(26 26)">
+          <line className="xmark-line1" x1="-15" y1="-15" x2="15" y2="15" />
+          <line className="xmark-line2" x1="-15" y1="15" x2="15" y2="-15" />
+      </g>
+    </svg>
+);
 
 // --- [INÍCIO] COMPONENTE DA SIDEBAR ---
 const StaffSidebarInternal = ({ currentView, setView, isMobileMenuOpen, closeMobileMenu }) => {
@@ -132,7 +151,7 @@ const DashboardView = ({ user, setView }) => {
                 <p className="text-slate-600 text-lg">Selecione uma ferramenta administrativa abaixo.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                <AdminActionCard title="Gerenciamento de Usuários" description="Controle total sobre contas policiais e civis (promover, rebaixar, suspender, banir, ver logs)." icon="fa-users-cog" onClick={() => setView('manage_users')} disabled={false}/>
+                <AdminActionCard title="Gerenciamento de Usuários" description="Controle total sobre contas policiais e civis (promover, rebaixar, suspender, banir)." icon="fa-users-cog" onClick={() => setView('manage_users')} disabled={false}/>
                 <AdminActionCard title="Departamentos e Hierarquia" description="Crie/edite Corporações (PM, PC), Patentes e Divisões." icon="fa-sitemap" onClick={() => setView('structure')} disabled={false}/>
                 <AdminActionCard title="Logs do Sistema (Geral)" description="Visualize logs detalhados de logins, ações administrativas, alterações no sistema e mais." icon="fa-clipboard-list" onClick={() => setView('logs')}/>
                 <AdminActionCard title="Reportes de Bug" description="Ver todos os bugs reportados por policiais e staff." icon="fa-bug" onClick={() => setView('bug_reports')}/>
@@ -151,7 +170,7 @@ const DashboardView = ({ user, setView }) => {
 
 
 // --- [INÍCIO] VISÃO 2: GERENCIAR USUÁRIOS ---
-const ManageUsersView = () => {
+const ManageUsersView = ({ onEditUser, onSuspendUser }) => {
     const { token, logout } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [searchType, setSearchType] = useState('Todos'); 
@@ -175,13 +194,13 @@ const ManageUsersView = () => {
         const toastId = toast.loading(`Buscando por "${query || (type === 'Todos' ? 'todos os usuários' : type)}"...`);
 
         if (!token) {
-            toast.update(toastId, { render: "Erro de autenticação", type: "error", isLoading: false, autoClose: 3000 });
+            toast.update(toastId, { render: "Erro de autenticação", type: "error", isLoading: false, autoClose: 3000, icon: <AnimatedXMark /> });
             setIsLoading(false);
             return;
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/staff/search-users`, {
+            const response = await fetch(`/api/staff/search-users`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -200,14 +219,29 @@ const ManageUsersView = () => {
             if (!response.ok) {
                 throw new Error(data.message || 'Erro ao buscar usuários.');
             }
-
-            setSearchResults(data.users || []);
+            
+            // Parsear permissões de string JSON para objeto
+            const usersWithParsedPerms = (data.users || []).map(user => {
+                if (user.permissoes && typeof user.permissoes === 'string') {
+                    try {
+                        user.permissoes = JSON.parse(user.permissoes);
+                    } catch (e) {
+                        console.error(`Falha ao parsear permissões do usuário ${user.id}:`, e);
+                        user.permissoes = {};
+                    }
+                } else if (!user.permissoes) {
+                    user.permissoes = {};
+                }
+                return user;
+            });
+            
+            setSearchResults(usersWithParsedPerms);
             
             if (initialSearchDone) { 
                  if (data.users.length === 0) {
                      toast.update(toastId, { render: "Nenhum usuário encontrado.", type: "info", isLoading: false, autoClose: 3000 });
                  } else {
-                     toast.update(toastId, { render: `Encontrado(s) ${data.users.length} usuário(s).`, type: "success", isLoading: false, autoClose: 2000 });
+                     toast.update(toastId, { render: `Encontrado(s) ${data.users.length} usuário(s).`, type: "success", isLoading: false, autoClose: 2000, icon: <AnimatedCheckmark /> });
                  }
             } else {
                  toast.dismiss(toastId); 
@@ -216,7 +250,7 @@ const ManageUsersView = () => {
 
         } catch (err) {
             console.error("Erro ao buscar usuários:", err);
-            toast.update(toastId, { render: `Erro: ${err.message}`, type: "error", isLoading: false, autoClose: 4000 });
+            toast.update(toastId, { render: `Erro: ${err.message}`, type: "error", isLoading: false, autoClose: 4000, icon: <AnimatedXMark /> });
         } finally {
             setIsLoading(false);
         }
@@ -248,11 +282,6 @@ const ManageUsersView = () => {
         e.preventDefault();
         fetchUsers(searchQuery, searchType);
     };
-
-    const handleOpenEdit = (user) => toast.info(`Abrir modal EDITAR para ${user.nome_completo} (a implementar)`);
-    const handleOpenRoles = (user) => toast.info(`Abrir modal PROMOVER/REBAIXAR (Global) para ${user.nome_completo} (a implementar)`);
-    const handleOpenSuspend = (user) => toast.info(`Abrir modal SUSPENDER/BANIR ${user.nome_completo} (a implementar)`);
-    const handleOpenLogs = (user) => toast.info(`Navegar para LOGS de ${user.nome_completo} (a implementar)`);
 
     return (
         <div>
@@ -316,22 +345,26 @@ const ManageUsersView = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                            user.status === 'Aprovado' || user.status === 'Ativo' ? 'bg-green-100 text-green-800' :
-                                            user.status === 'Em Análise' || user.status === 'Suspenso' ? 'bg-yellow-100 text-yellow-800' :
+                                            (user.status === 'Aprovado' || user.status === 'Ativo') ? 'bg-green-100 text-green-800' :
+                                            (user.status === 'Em Análise' || user.status === 'Suspenso') ? 'bg-yellow-100 text-yellow-800' :
                                             'bg-red-100 text-red-800'
                                         }`}>
                                             {user.status || 'N/A'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                        <button onClick={() => handleOpenEdit(user)} className="text-indigo-600 hover:text-indigo-900" title="Editar"><i className="fas fa-edit"></i></button>
+                                        {/* --- BOTÕES ATUALIZADOS --- */}
+                                        <button onClick={() => onEditUser(user)} className="text-indigo-600 hover:text-indigo-900" title="Editar / Promover"><i className="fas fa-edit"></i></button>
+                                        
+                                        {/* Botão de Suspender/Banir (Policial) */}
                                         {user.tipo === 'Policial' && (
-                                            <>
-                                                <button onClick={() => handleOpenRoles(user)} className="text-teal-600 hover:text-teal-900" title="Promover/Rebaixar (Global)"><i className="fas fa-user-shield"></i></button>
-                                                <button onClick={() => handleOpenSuspend(user)} className="text-yellow-600 hover:text-yellow-900" title="Suspender/Banir"><i className="fas fa-user-clock"></i></button>
-                                            </>
+                                            <button onClick={() => onSuspendUser(user)} className="text-yellow-600 hover:text-yellow-900" title="Suspender/Banir"><i className="fas fa-user-clock"></i></button>
                                         )}
-                                        <button onClick={() => handleOpenLogs(user)} className="text-slate-500 hover:text-slate-800" title="Ver Logs do Usuário"><i className="fas fa-history"></i></button>
+                                        
+                                        {/* Botão de Banir (Civil) */}
+                                        {user.tipo === 'Civil' && (
+                                             <button onClick={() => onSuspendUser(user)} className="text-red-600 hover:text-red-900" title="Banir (Deletar)"><i className="fas fa-user-slash"></i></button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -363,7 +396,12 @@ const translateAction = (actionKey) => {
         'Create Concurso (Fallback V1)': 'Criar Concurso (Fallback V1)',
         'Generate Global Token': 'Gerar Token Global',
         'Update Portal Settings': 'Atualizar Config. Portal',
-        'Update Corp Permissions': 'Atualizar Permissões Corp.', // Adicionado
+        'Update Corp Permissions': 'Atualizar Permissões Corp.', 
+        // Novas ações
+        'Staff: Update User Data': 'Staff: Editou Usuário',
+        'Staff: Update Rank': 'Staff: Alterou Patente',
+        'Staff: Apply Action': 'Staff: Aplicou Ação',
+        'Staff: Unban IP': 'Staff: Perdoou IP'
     };
     return translations[actionKey] || actionKey;
 };
@@ -391,6 +429,8 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
             'Create Concurso (Fallback V2)', 'Create Concurso (Fallback V1)',
             'Generate Global Token', 'Update Portal Settings',
             'Update Corp Permissions',
+            // Novas ações
+            'Staff: Update User Data', 'Staff: Update Rank', 'Staff: Apply Action', 'Staff: Unban IP',
         ];
         const translatedActions = allActionKeys
             .map(key => ({ key: key, translated: translateAction(key) }))
@@ -409,7 +449,7 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
             date: currentFilters.date
         });
         try {
-            const response = await fetch(`${API_URL}/api/admin/logs?${params.toString()}`, {
+            const response = await fetch(`/api/admin/logs?${params.toString()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
@@ -508,7 +548,8 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
                                                         .replace(/\s+/g, '-')
                                                         .replace(/[()]/g, '')
                                                         .replace(/\//g, '-')
-                                                        .replace(/é/g, 'e') // Normaliza acentos
+                                                        .replace(/:/g, '') // Remove :
+                                                        .replace(/é/g, 'e')
                                                         .toLowerCase()
                                                 }`}>
                                                     {translateAction(log.acao)}
@@ -547,10 +588,9 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
 // --- [FIM] VISÃO 3 ---
 
 // --- [INÍCIO] COMPONENTE DE TOGGLE (PermissionToggle) ---
-const PermissionToggle = ({ label, description, isEnabled, onToggle }) => {
-    // ... (Inalterado) ...
+const PermissionToggle = ({ label, description, isEnabled, onToggle, disabled = false }) => {
     return (
-        <div className="flex items-center justify-between py-4 border-b border-slate-200 last:border-b-0">
+        <div className={`flex items-center justify-between py-4 border-b border-slate-200 last:border-b-0 ${disabled ? 'opacity-50' : ''}`}>
             <div className="max-w-xs">
                 <label className="block text-sm font-medium text-slate-800">{label}</label>
                 <p className="text-xs text-slate-500">{description}</p>
@@ -559,11 +599,13 @@ const PermissionToggle = ({ label, description, isEnabled, onToggle }) => {
                 type="button"
                 role="switch"
                 aria-checked={isEnabled}
-                onClick={() => onToggle(!isEnabled)}
+                onClick={() => !disabled && onToggle(!isEnabled)}
+                disabled={disabled}
                 data-state={isEnabled ? 'checked' : 'unchecked'}
-                className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent 
                            transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2
-                           data-[state=checked]:bg-indigo-700 data-[state=unchecked]:bg-slate-300"
+                           ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}
+                           data-[state=checked]:bg-indigo-700 data-[state=unchecked]:bg-slate-300`}
             >
                 <motion.span
                     aria-hidden="true"
@@ -581,12 +623,17 @@ const PermissionToggle = ({ label, description, isEnabled, onToggle }) => {
 
 // --- [INÍCIO] MODAIS DE GERENCIAMENTO DE ESTRUTURA ---
 const ManageCorporacoesModal = ({ isOpen, onClose, corporacoes, onRefresh }) => {
-    // ... (Inalterado) ...
     const { token, logout } = useAuth();
     const [nome, setNome] = useState('');
     const [sigla, setSigla] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) {
+            resetForm();
+        }
+    }, [isOpen]);
 
     const resetForm = () => {
         setNome(''); setSigla(''); setEditingId(null);
@@ -602,23 +649,23 @@ const ManageCorporacoesModal = ({ isOpen, onClose, corporacoes, onRefresh }) => 
         if (!window.confirm(`Tem certeza que quer deletar a corporação "${corp.nome} (${corp.sigla})"?`)) return;
         setLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/staff/corporacoes/${corp.id}`, {
+            const response = await fetch(`/api/staff/corporacoes/${corp.id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.status === 401 || response.status === 403) { logout(); throw new Error('Sessão inválida'); }
             const data = await response.json();
             if (!response.ok) throw new Error(data.message);
-            toast.success(data.message);
+            toast.success(data.message, { icon: <AnimatedCheckmark /> });
             onRefresh();
-        } catch (err) { toast.error(err.message); }
+        } catch (err) { toast.error(err.message, { icon: <AnimatedXMark /> }); }
         setLoading(false);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        const url = editingId ? `${API_URL}/api/staff/corporacoes/${editingId}` : `${API_URL}/api/staff/corporacoes`;
+        const url = editingId ? `/api/staff/corporacoes/${editingId}` : `/api/staff/corporacoes`;
         const method = editingId ? 'PUT' : 'POST';
         
         try {
@@ -630,58 +677,74 @@ const ManageCorporacoesModal = ({ isOpen, onClose, corporacoes, onRefresh }) => 
             if (response.status === 401 || response.status === 403) { logout(); throw new Error('Sessão inválida'); }
             const data = await response.json();
             if (!response.ok) throw new Error(data.message);
-            toast.success(data.message);
+            toast.success(data.message, { icon: <AnimatedCheckmark /> });
             onRefresh();
             resetForm();
-        } catch (err) { toast.error(err.message); }
+        } catch (err) { toast.error(err.message, { icon: <AnimatedXMark /> }); }
         setLoading(false);
     };
 
     return (
-        <div className={`fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`} onClick={onClose}>
-            <div className={`bg-white rounded-lg shadow-xl w-full max-w-lg transform transition-all duration-300 ${isOpen ? 'scale-100' : 'scale-95'}`} onClick={e => e.stopPropagation()}>
-                <div className="p-4 border-b">
-                    <h2 className="text-xl font-semibold text-slate-800">{editingId ? 'Editar' : 'Adicionar'} Corporação</h2>
-                </div>
-                <form onSubmit={handleSubmit}>
-                    <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
-                                <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md" required />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Sigla</label>
-                                <input type="text" value={sigla} onChange={(e) => setSigla(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md" required />
-                            </div>
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="modal-overlay"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ scale: 0.95, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                        className="modal-content"
+                        style={{ maxWidth: '500px' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="modal-header">
+                            <h2 className="text-xl font-semibold text-slate-800">{editingId ? 'Editar' : 'Adicionar'} Corporação</h2>
                         </div>
-                        <div className="mt-4">
-                            <h3 className="text-lg font-medium text-slate-700 mb-2">Corporações Atuais</h3>
-                            <ul className="divide-y divide-slate-200 border rounded-md">
-                                {corporacoes.map(corp => (
-                                    <li key={corp.id} className="flex items-center justify-between p-2 hover:bg-slate-50">
-                                        <span className="text-sm">{corp.nome} ({corp.sigla})</span>
-                                        <div className="space-x-2">
-                                            <button type="button" onClick={() => handleEditClick(corp)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium" disabled={loading}>Editar</button>
-                                            <button type="button" onClick={() => handleDelete(corp)} className="text-xs text-red-600 hover:text-red-800 font-medium" disabled={loading}>Excluir</button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-b-lg flex justify-end gap-3">
-                        <button type="button" onClick={onClose} className="py-2 px-4 rounded-md text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-100" disabled={loading}>Cancelar</button>
-                        <button type="submit" className="py-2 px-4 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700" disabled={loading}>{loading ? 'Salvando...' : (editingId ? 'Salvar Mudanças' : 'Adicionar')}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="modal-body space-y-4 max-h-[60vh] overflow-y-auto">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="modal-form-group">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
+                                        <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md" required />
+                                    </div>
+                                    <div className="modal-form-group">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Sigla</label>
+                                        <input type="text" value={sigla} onChange={(e) => setSigla(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md" required />
+                                    </div>
+                                </div>
+                                <div className="mt-4">
+                                    <h3 className="text-lg font-medium text-slate-700 mb-2">Corporações Atuais</h3>
+                                    <ul className="divide-y divide-slate-200 border rounded-md max-h-[200px] overflow-y-auto">
+                                        {corporacoes.map(corp => (
+                                            <li key={corp.id} className="flex items-center justify-between p-2 hover:bg-slate-50">
+                                                <span className="text-sm">{corp.nome} ({corp.sigla})</span>
+                                                <div className="space-x-2">
+                                                    <button type="button" onClick={() => handleEditClick(corp)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium" disabled={loading}>Editar</button>
+                                                    <button type="button" onClick={() => handleDelete(corp)} className="text-xs text-red-600 hover:text-red-800 font-medium" disabled={loading}>Excluir</button>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-slate-50 rounded-b-lg flex justify-end gap-3">
+                                <button type="button" onClick={onClose} className="btn-secondary" disabled={loading}>Cancelar</button>
+                                <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Salvando...' : (editingId ? 'Salvar Mudanças' : 'Adicionar')}</button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 };
 
 const ManageSubItemsModal = ({ isOpen, onClose, onRefresh, corporacoes, items, title, endpoint }) => {
-    // ... (Inalterado) ...
     const { token, logout } = useAuth();
     const [nome, setNome] = useState('');
     const [corporacaoSigla, setCorporacaoSigla] = useState('');
@@ -717,23 +780,23 @@ const ManageSubItemsModal = ({ isOpen, onClose, onRefresh, corporacoes, items, t
         if (!window.confirm(`Tem certeza que quer deletar "${item.nome}"?`)) return;
         setLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/staff/${endpoint}/${item.id}`, {
+            const response = await fetch(`/api/staff/${endpoint}/${item.id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.status === 401 || response.status === 403) { logout(); throw new Error('Sessão inválida'); }
             const data = await response.json();
             if (!response.ok) throw new Error(data.message);
-            toast.success(data.message);
+            toast.success(data.message, { icon: <AnimatedCheckmark /> });
             onRefresh();
-        } catch (err) { toast.error(err.message); }
+        } catch (err) { toast.error(err.message, { icon: <AnimatedXMark /> }); }
         setLoading(false);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        const url = editingId ? `${API_URL}/api/staff/${endpoint}/${editingId}` : `${API_URL}/api/staff/${endpoint}`;
+        const url = editingId ? `/api/staff/${endpoint}/${editingId}` : `/api/staff/${endpoint}`;
         const method = editingId ? 'PUT' : 'POST';
         
         const body = isPatentes 
@@ -749,79 +812,94 @@ const ManageSubItemsModal = ({ isOpen, onClose, onRefresh, corporacoes, items, t
             if (response.status === 401 || response.status === 403) { logout(); throw new Error('Sessão inválida'); }
             const data = await response.json();
             if (!response.ok) throw new Error(data.message);
-            toast.success(data.message);
+            toast.success(data.message, { icon: <AnimatedCheckmark /> });
             onRefresh();
             resetForm();
-        } catch (err) { toast.error(err.message); }
+        } catch (err) { toast.error(err.message, { icon: <AnimatedXMark /> }); }
         setLoading(false);
     };
 
     return (
-        <div className={`fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`} onClick={onClose}>
-            <div className={`bg-white rounded-lg shadow-xl w-full max-w-lg transform transition-all duration-300 ${isOpen ? 'scale-100' : 'scale-95'}`} onClick={e => e.stopPropagation()}>
-                <div className="p-4 border-b">
-                    <h2 className="text-xl font-semibold text-slate-800">{editingId ? 'Editar' : 'Adicionar'} {title}</h2>
-                </div>
-                <form onSubmit={handleSubmit}>
-                    <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-                        {/* Formulário */}
-                        <div className={`grid ${isPatentes ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
-                            <div className={`${isPatentes ? 'col-span-2' : 'col-span-1'}`}>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
-                                <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md" required />
-                            </div>
-                            <div className="col-span-1">
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Corporação</label>
-                                <select value={corporacaoSigla} onChange={(e) => setCorporacaoSigla(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white" required>
-                                    {corporacoes.map(c => <option key={c.sigla} value={c.sigla}>{c.sigla}</option>)}
-                                </select>
-                            </div>
-                            {isPatentes && (
-                                <div className="col-span-1">
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Ordem</label>
-                                    <input type="number" value={ordem} onChange={(e) => setOrdem(parseInt(e.target.value, 10))} className="w-full px-3 py-2 border border-slate-300 rounded-md" />
-                                </div>
-                            )}
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="modal-overlay"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ scale: 0.95, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                        className="modal-content"
+                        style={{ maxWidth: '500px' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="p-4 border-b">
+                            <h2 className="text-xl font-semibold text-slate-800">{editingId ? 'Editar' : 'Adicionar'} {title}</h2>
                         </div>
-                        
-                        {/* Lista de Existentes */}
-                        <div className="mt-4">
-                            <h3 className="text-lg font-medium text-slate-700 mb-2">{title}s Atuais</h3>
-                            <ul className="divide-y divide-y divide-slate-200 border rounded-md">
-                                {items.map(item => (
-                                    <li key={item.id} className="flex items-center justify-between p-2 hover:bg-slate-50">
-                                        <span className="text-sm">{item.nome} ({item.corporacao_sigla}) {isPatentes ? `[Ordem: ${item.ordem}]` : ''}</span>
-                                        <div className="space-x-2">
-                                            <button type="button" onClick={() => handleEditClick(item)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium" disabled={loading}>Editar</button>
-                                            <button type="button" onClick={() => handleDelete(item)} className="text-xs text-red-600 hover:text-red-800 font-medium" disabled={loading}>Excluir</button>
+                        <form onSubmit={handleSubmit}>
+                            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+                                {/* Formulário */}
+                                <div className={`grid ${isPatentes ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
+                                    <div className={`${isPatentes ? 'col-span-3' : 'col-span-1'} sm:${isPatentes ? 'col-span-2' : 'col-span-1'}`}>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
+                                        <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md" required />
+                                    </div>
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Corp.</label>
+                                        <select value={corporacaoSigla} onChange={(e) => setCorporacaoSigla(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white" required>
+                                            {corporacoes.map(c => <option key={c.sigla} value={c.sigla}>{c.sigla}</option>)}
+                                        </select>
+                                    </div>
+                                    {isPatentes && (
+                                        <div className="col-span-2 sm:col-span-1">
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Ordem</label>
+                                            <input type="number" value={ordem} onChange={(e) => setOrdem(parseInt(e.target.value, 10))} className="w-full px-3 py-2 border border-slate-300 rounded-md" />
                                         </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-b-lg flex justify-end gap-3">
-                        <button type="button" onClick={onClose} className="py-2 px-4 rounded-md text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-100" disabled={loading}>Cancelar</button>
-                        <button type="submit" className="py-2 px-4 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700" disabled={loading}>{loading ? 'Salvando...' : (editingId ? 'Salvar Mudanças' : 'Adicionar')}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Lista de Existentes */}
+                                <div className="mt-4">
+                                    <h3 className="text-lg font-medium text-slate-700 mb-2">{title}s Atuais</h3>
+                                    <ul className="divide-y divide-y divide-slate-200 border rounded-md max-h-[200px] overflow-y-auto">
+                                        {items.map(item => (
+                                            <li key={item.id} className="flex items-center justify-between p-2 hover:bg-slate-50">
+                                                <span className="text-sm">{item.nome} ({item.corporacao_sigla}) {isPatentes ? `[Ordem: ${item.ordem}]` : ''}</span>
+                                                <div className="space-x-2">
+                                                    <button type="button" onClick={() => handleEditClick(item)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium" disabled={loading}>Editar</button>
+                                                    <button type="button" onClick={() => handleDelete(item)} className="text-xs text-red-600 hover:text-red-800 font-medium" disabled={loading}>Excluir</button>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-slate-50 rounded-b-lg flex justify-end gap-3">
+                                <button type="button" onClick={onClose} className="btn-secondary" disabled={loading}>Cancelar</button>
+                                <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Salvando...' : (editingId ? 'Salvar Mudanças' : 'Adicionar')}</button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 };
 // --- [FIM] MODAIS DE GERENCIAMENTO DE ESTRUTURA ---
 
 
-// --- [INÍCIO] VISÃO 4: DEPARTAMENTOS E HIERARQUIA (ATUALIZADO) ---
+// --- [INÍCIO] VISÃO 4: DEPARTAMENTOS E HIERARQUIA ---
 const StructureView = () => {
-    // ✅ ATUALIZADO: Pega 'user' e 'updateUserPermissions' do context
     const { token, logout, user, updateUserPermissions } = useAuth(); 
     const [structureData, setStructureData] = useState({ corporacoes: [], patentes: [], divisoes: [] });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [modalState, setModalState] = useState(null);
+    const [modalState, setModalState] = useState(null); // 'corps', 'ranks', 'divs'
 
-    // --- API Call ---
     const fetchStructureData = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -832,7 +910,7 @@ const StructureView = () => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/staff/structure`, {
+            const response = await fetch(`/api/staff/structure`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.status === 401 || response.status === 403) {
@@ -850,7 +928,6 @@ const StructureView = () => {
                 throw new Error(data.message || 'Falha ao buscar dados de estrutura.');
             }
 
-            // Garante que 'permissoes' seja um objeto
             const processedCorps = (data.corporacoes || []).map(corp => ({
                 ...corp,
                 permissoes: typeof corp.permissoes === 'string' && corp.permissoes.startsWith('{')
@@ -874,23 +951,19 @@ const StructureView = () => {
     useEffect(() => {
         fetchStructureData();
     }, [fetchStructureData]);
-    // --- Fim API Call ---
 
-    // --- ✅ FUNÇÃO DE PERMISSÃO ATUALIZADA ---
     const handlePermissionChange = async (corpId, permKey, newValue) => {
         const adminUser = user;
         
         const currentCorp = structureData.corporacoes.find(c => c.id === corpId);
         if (!currentCorp) return;
 
-        // 1. Cria o NOVO objeto de permissões
         const newPermissions = {
             ...currentCorp.permissoes, 
             [permKey]: newValue         
         };
         const newPermissionsJson = JSON.stringify(newPermissions);
 
-        // 2. UI Otimista (Atualiza o estado local ANTES da API)
         setStructureData(prev => ({
             ...prev,
             corporacoes: prev.corporacoes.map(corp => 
@@ -900,10 +973,9 @@ const StructureView = () => {
             )
         }));
         
-        // 3. Salva no Backend
         const toastId = toast.loading("Salvando permissão...");
         try {
-            const response = await fetch(`${API_URL}/api/staff/corporacoes/${corpId}/permissions`, {
+            const response = await fetch(`/api/staff/corporacoes/${corpId}/permissions`, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -917,18 +989,15 @@ const StructureView = () => {
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Falha ao salvar no backend.');
             
-            toast.update(toastId, { render: data.message, type: 'success', isLoading: false, autoClose: 2000 });
+            toast.update(toastId, { render: data.message, type: 'success', isLoading: false, autoClose: 2000, icon: <AnimatedCheckmark /> });
             
-            // ✅ 4. ATUALIZA O AUTHCONTEXT NA HORA
-            // Se a corporação alterada for a do próprio staff, atualiza o context
             if (currentCorp.sigla === user.corporacao) {
                 updateUserPermissions(newPermissions);
             }
 
         } catch (err) {
-            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000 });
+            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000, icon: <AnimatedXMark /> });
             
-            // 5. Reverte o estado local em caso de erro
             setStructureData(prev => ({
                 ...prev,
                 corporacoes: prev.corporacoes.map(corp => 
@@ -939,7 +1008,6 @@ const StructureView = () => {
             }));
         }
     };
-    // --- FIM DA FUNÇÃO DE PERMISSÃO ---
 
 
     const handleManageCorps = () => setModalState('corps');
@@ -953,22 +1021,6 @@ const StructureView = () => {
         }
     };
 
-    // Função de renderização de lista (Inalterada)
-    const renderList = (title, items, formatter) => (
-        <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">{title} ({items.length})</h3>
-            {items.length === 0 ? (
-                <p className="text-sm text-slate-500">Nenhum item encontrado.</p>
-            ) : (
-                <ul className="list-disc list-inside text-sm text-slate-600 max-h-48 overflow-y-auto">
-                    {items.map((item) => (
-                        <li key={item.id}>{formatter(item)}</li>
-                    ))}
-                </ul>
-            )}
-        </div>
-    );
-
     return (
         <div>
             <div className="mb-8">
@@ -976,7 +1028,6 @@ const StructureView = () => {
                 <p className="text-slate-600 text-lg">Gerencie a estrutura fundamental das corporações policiais.</p>
             </div>
             
-            {/* Grid de Botões (Gerenciamento) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
                 <AdminActionCard 
                     title="Gerenciar Corporações"
@@ -1001,7 +1052,6 @@ const StructureView = () => {
                 />
             </div>
 
-            {/* --- SEÇÃO DE PERMISSÕES ATUALIZADA --- */}
             <div className="mt-12">
                 <h2 className="text-2xl font-bold text-slate-800 mb-6">Permissões da Corporação</h2>
                 
@@ -1034,7 +1084,6 @@ const StructureView = () => {
                     </div>
                 )}
             </div>
-            {/* --- FIM DA SEÇÃO DE PERMISSÕES --- */}
             
             <ManageCorporacoesModal 
                 isOpen={modalState === 'corps'}
@@ -1066,41 +1115,36 @@ const StructureView = () => {
 // --- [FIM] VISÃO 4 ---
 
 
-// --- [INÍCIO] VISÃO 5: PAINEL TÉCNICO (ATUALIZADO COM API) ---
-const TechPanelView = () => {
+// --- [INÍCIO] VISÃO 5: PAINEL TÉCNICO ---
+const TechPanelView = ({ setModal }) => { // <-- Recebe setModal
     const { user, token, logout } = useAuth();
     const canAccessTech = user?.permissoes?.is_dev === true || user?.permissoes?.is_staff === true;
 
-    // --- Estados para Gerador de Token ---
+    // ... (restante dos estados: token, settings, banners) ...
     const [tokenCorporacao, setTokenCorporacao] = useState('PM'); 
     const [tokenUses, setTokenUses] = useState(1);
     const [tokenDuration, setTokenDuration] = useState(24);
     const [generatedToken, setGeneratedToken] = useState('');
     const [isGeneratingToken, setIsGeneratingToken] = useState(false);
-
-    // --- Estados para Configs do Portal ---
     const [portalSettings, setPortalSettings] = useState({
         header_title: '',
         header_subtitle: '',
         header_logo_url: '',
         footer_copyright: '',
-        banner_images: [] // ✅ NOVO: Estado para banners
+        banner_images: [] 
     });
     const [logoFile, setLogoFile] = useState(null);
     const [isLoadingSettings, setIsLoadingSettings] = useState(true);
     const [isSavingSettings, setIsSavingSettings] = useState(false);
-    
-    // ✅ NOVO: Estados para o Gerenciador de Banners
     const [newBannerFiles, setNewBannerFiles] = useState([]);
     const [isSavingBanners, setIsSavingBanners] = useState(false);
     const maxBanners = 10;
-
 
     // --- API Call: Buscar Configurações do Portal ---
     const fetchPortalSettings = useCallback(async () => {
         setIsLoadingSettings(true);
         try {
-            const response = await fetch(`${API_URL}/api/public/portal-settings`);
+            const response = await fetch(`/api/public/portal-settings`);
             let data;
             try {
                 data = await response.json();
@@ -1116,14 +1160,14 @@ const TechPanelView = () => {
                 header_subtitle: data.header_subtitle || '',
                 header_logo_url: data.header_logo_url || '',
                 footer_copyright: data.footer_copyright || '',
-                banner_images: Array.isArray(data.banner_images) ? data.banner_images : [] // ✅ NOVO
+                banner_images: Array.isArray(data.banner_images) ? data.banner_images : [] 
             });
         } catch (err) {
-            toast.error(`Erro ao carregar configs: ${err.message}`);
+            toast.error(`Erro ao carregar configs: ${err.message}`, { icon: <AnimatedXMark /> });
         } finally {
             setIsLoadingSettings(false);
         }
-    }, []); // Removida dependência desnecessária
+    }, []); 
 
     useEffect(() => {
         if (canAccessTech) {
@@ -1138,7 +1182,7 @@ const TechPanelView = () => {
         const toastId = toast.loading("Salvando configurações...");
 
         if (!token) {
-            toast.update(toastId, { render: "Erro de autenticação", type: "error", isLoading: false, autoClose: 3000 });
+            toast.update(toastId, { render: "Erro de autenticação", type: "error", isLoading: false, autoClose: 3000, icon: <AnimatedXMark /> });
             setIsSavingSettings(false);
             return;
         }
@@ -1154,7 +1198,7 @@ const TechPanelView = () => {
         formData.append('old_logo_url', portalSettings.header_logo_url);
 
         try {
-            const response = await fetch(`${API_URL}/api/staff/portal-settings`, {
+            const response = await fetch(`/api/staff/portal-settings`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
@@ -1173,16 +1217,15 @@ const TechPanelView = () => {
 
             if (!response.ok) throw new Error(result.message || 'Falha ao salvar.');
 
-            toast.update(toastId, { render: result.message, type: 'success', isLoading: false, autoClose: 3000 });
+            toast.update(toastId, { render: result.message, type: 'success', isLoading: false, autoClose: 3000, icon: <AnimatedCheckmark /> });
             
             if (result.new_logo_url) {
-                // Atualiza o estado local com a nova URL do logo
                 setPortalSettings(prev => ({ ...prev, header_logo_url: result.new_logo_url }));
             }
             setLogoFile(null); 
 
         } catch (err) {
-            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000 });
+            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000, icon: <AnimatedXMark /> });
         } finally {
             setIsSavingSettings(false);
         }
@@ -1196,13 +1239,13 @@ const TechPanelView = () => {
         const toastId = toast.loading("Gerando token...");
 
         if (!token) {
-            toast.update(toastId, { render: "Erro de autenticação", type: "error", isLoading: false, autoClose: 3000 });
+            toast.update(toastId, { render: "Erro de autenticação", type: "error", isLoading: false, autoClose: 3000, icon: <AnimatedXMark /> });
             setIsGeneratingToken(false);
             return;
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/staff/generate-global-token`, {
+            const response = await fetch(`/api/staff/generate-global-token`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
@@ -1224,64 +1267,51 @@ const TechPanelView = () => {
 
             if (!response.ok) throw new Error(result.message || 'Falha ao gerar token.');
 
-            toast.update(toastId, { render: result.message, type: 'success', isLoading: false, autoClose: 4000 });
+            toast.update(toastId, { render: result.message, type: 'success', isLoading: false, autoClose: 4000, icon: <AnimatedCheckmark /> });
             setGeneratedToken(result.token);
         } catch (err) {
-            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000 });
+            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000, icon: <AnimatedXMark /> });
         } finally {
             setIsGeneratingToken(false);
         }
     };
     
-    // ✅ --- [NOVO] FUNÇÕES PARA GERENCIAR BANNERS ---
-    
-    // 1. Quando novos arquivos são selecionados
+    // FUNÇÕES PARA GERENCIAR BANNERS
     const handleBannerFileChange = (e) => {
         const files = Array.from(e.target.files);
-        
-        // Verifica o limite total
         const totalBanners = portalSettings.banner_images.length + files.length;
         if (totalBanners > maxBanners) {
-            toast.error(`Limite de ${maxBanners} banners excedido. Você tem ${portalSettings.banner_images.length} e tentou adicionar ${files.length}.`);
-            e.target.value = null; // Limpa o input
+            toast.error(`Limite de ${maxBanners} banners excedido. Você tem ${portalSettings.banner_images.length} e tentou adicionar ${files.length}.`, { icon: <AnimatedXMark /> });
+            e.target.value = null; 
             setNewBannerFiles([]);
             return;
         }
         setNewBannerFiles(files);
     };
 
-    // 2. Para remover um banner EXISTENTE (apenas no estado local)
     const handleRemoveBanner = (imageUrlToRemove) => {
         if (!window.confirm("Tem certeza que deseja remover este banner? A remoção será permanente ao salvar.")) return;
-        
         setPortalSettings(prev => ({
             ...prev,
             banner_images: prev.banner_images.filter(url => url !== imageUrlToRemove)
         }));
     };
     
-    // 3. Para remover um banner NOVO (que ainda não foi salvo)
     const handleRemoveNewFile = (fileNameToRemove) => {
         setNewBannerFiles(prev => prev.filter(file => file.name !== fileNameToRemove));
     };
 
-    // 4. API Call: Salvar Banners
     const handleSaveBanners = async () => {
         setIsSavingBanners(true);
         const toastId = toast.loading("Salvando banners...");
-
         const formData = new FormData();
-        
-        // Adiciona os banners existentes que foram mantidos
         formData.append('existing_images', JSON.stringify(portalSettings.banner_images));
-        
-        // Adiciona os novos arquivos
         newBannerFiles.forEach(file => {
-            formData.append('banners', file); // 'banners' deve bater com o upload.array() no backend
+            formData.append('banners', file); 
         });
 
         try {
-            const response = await fetch(`${API_URL}/api/staff/banner-images`, {
+            const response = await fetch(`/api/staff/banner-images`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
@@ -1292,26 +1322,20 @@ const TechPanelView = () => {
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'Falha ao salvar banners.');
 
-            toast.update(toastId, { render: result.message, type: 'success', isLoading: false, autoClose: 3000 });
-            
-            // Atualiza o estado local com a nova lista vinda do servidor
+            toast.update(toastId, { render: result.message, type: 'success', isLoading: false, autoClose: 3000, icon: <AnimatedCheckmark /> });
             setPortalSettings(prev => ({ ...prev, banner_images: result.banner_images || [] }));
-            setNewBannerFiles([]); // Limpa os arquivos novos
+            setNewBannerFiles([]); 
 
         } catch (err) {
-            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000 });
-            // Recarrega as configurações do servidor para reverter o estado local em caso de erro
+            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000, icon: <AnimatedXMark /> });
             fetchPortalSettings();
         } finally {
             setIsSavingBanners(false);
         }
     };
     
-    // --- FIM DAS FUNÇÕES DE BANNER ---
-    
     
     const handleManagePermissions = () => toast.info("Abrir modal Gerenciar Permissões (a implementar - requer is_dev?)");
-    const handleViewServerStatus = () => toast.info("Abrir modal Status do Sistema (a implementar)");
 
     if (!canAccessTech) {
         return (
@@ -1322,7 +1346,6 @@ const TechPanelView = () => {
         );
     }
 
-    // --- Renderização ---
     return (
         <div>
             <div className="mb-8">
@@ -1407,7 +1430,7 @@ const TechPanelView = () => {
                 </div>
             </div>
 
-            {/* --- ✅ NOVO: CARD GERENCIADOR DE BANNERS --- */}
+            {/* --- CARD GERENCIADOR DE BANNERS --- */}
             <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200 mb-8">
                  <h2 className="text-xl font-semibold text-slate-800 mb-4 border-b pb-3">Gerenciar Banners do Portal (Máx: {maxBanners})</h2>
                  {isLoadingSettings ? <p className="text-slate-500">Carregando banners...</p> : (
@@ -1422,7 +1445,7 @@ const TechPanelView = () => {
                                     {portalSettings.banner_images.map((imgUrl) => (
                                         <div key={imgUrl} className="relative group border rounded-md overflow-hidden aspect-video">
                                             <img 
-                                                src={`${API_URL}${imgUrl}`} 
+                                                src={imgUrl} 
                                                 alt="Banner" 
                                                 className="w-full h-full object-cover"
                                                 onError={(e) => { e.target.onerror = null; e.target.src = "/brasao.png" }} // Fallback
@@ -1501,6 +1524,13 @@ const TechPanelView = () => {
             {/* Cards Restantes (Acesso Dev) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                  <AdminActionCard 
+                    title="Gerenciar IPs Banidos" // <-- NOVO CARD
+                    description="Perdoar (desbanir) IPs que foram banidos do sistema."
+                    icon="fa-network-wired"
+                    onClick={() => setModal('manageBannedIPs', true)}
+                    disabled={!user?.permissoes?.is_dev} // Apenas Dev
+                />
+                 <AdminActionCard 
                     title="Gerenciar Permissões"
                     description="Definir quais cargos têm acesso a quais painéis (is_rh, is_staff, is_dev)."
                     icon="fa-user-shield"
@@ -1521,19 +1551,664 @@ const TechPanelView = () => {
 // --- [FIM] VISÃO 5 ---
 
 
+// --- [INÍCIO] NOVOS MODAIS DE GERENCIAMENTO DE USUÁRIO ---
+
+// --- Modal: Editar Usuário (Unificado) ---
+const EditUserModal = ({ isOpen, onClose, user: userToEdit, onSave, structureData, adminUser }) => {
+    const { token, logout } = useAuth();
+    const [formData, setFormData] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isPolicial, setIsPolicial] = useState(false);
+
+    // Listas filtradas para selects
+    const [patentesDisponiveis, setPatentesDisponiveis] = useState([]);
+    const [divisoesDisponiveis, setDivisoesDisponiveis] = useState([]);
+
+    useEffect(() => {
+        if (isOpen && userToEdit) {
+            setIsPolicial(userToEdit.tipo === 'Policial');
+            
+            // Define o formData inicial
+            const baseData = {
+                nome_completo: userToEdit.nome_completo || '',
+                passaporte: userToEdit.passaporte || '',
+            };
+            
+            if (userToEdit.tipo === 'Policial') {
+                // Tenta parsear permissões existentes
+                let userPerms = {};
+                try {
+                    // O 'userToEdit' da lista (search-users) agora inclui 'permissoes'
+                    const permsString = userToEdit.permissoes;
+                    
+                    if (typeof permsString === 'string' && permsString.startsWith('{')) {
+                        userPerms = JSON.parse(permsString);
+                    } else if (typeof permsString === 'object' && permsString !== null) {
+                        userPerms = permsString;
+                    }
+                } catch(e) {
+                    console.error("Erro ao parsear permissões do usuário:", e);
+                }
+
+                // Preenche dados específicos de policial
+                const policeData = {
+                    ...baseData,
+                    discord_id: userToEdit.discord_id || '',
+                    telefone_rp: userToEdit.telefone_rp || '',
+                    gmail: userToEdit.gmail || '',
+                    corporacao: userToEdit.corporacao || '',
+                    patente: userToEdit.patente || '',
+                    divisao: userToEdit.divisao || '',
+                    status: userToEdit.status || 'Em Análise', // <-- ADICIONADO
+                    // ADICIONADO: Seta o estado das permissões
+                    permissoes: {
+                        is_staff: !!userPerms.is_staff,
+                        is_rh: !!userPerms.is_rh,
+                        is_dev: !!userPerms.is_dev
+                    }
+                };
+                setFormData(policeData);
+
+                // Filtra patentes e divisões para a corporação deste policial
+                const corpSigla = userToEdit.corporacao;
+                setPatentesDisponiveis(
+                    (structureData.patentes || [])
+                        .filter(p => p.corporacao_sigla === corpSigla)
+                        .sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+                        .map(p => p.nome)
+                );
+                setDivisoesDisponiveis(
+                    (structureData.divisoes || [])
+                        .filter(d => d.corporacao_sigla === corpSigla)
+                        .map(d => d.nome)
+                );
+
+            } else { // é Civil
+                // Preenche dados específicos de civil
+                const civilData = {
+                    ...baseData,
+                    telefone_rp: userToEdit.telefone_rp || '', 
+                    gmail: userToEdit.gmail || '', 
+                    // Civis não têm status ou permissões editáveis aqui
+                };
+                setFormData(civilData);
+                setPatentesDisponiveis([]);
+                setDivisoesDisponiveis([]);
+            }
+        } else {
+            // Limpa o formulário ao fechar
+            setFormData({});
+            setIsPolicial(false);
+        }
+    }, [isOpen, userToEdit, structureData]);
+
+    const handleChange = (e) => {
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    // Handler para os toggles de permissão
+    const handlePermissionToggle = (perm) => {
+        setFormData(prev => ({ 
+            ...prev, 
+            permissoes: { 
+                ...prev.permissoes, 
+                [perm]: !prev.permissoes[perm] 
+            } 
+        }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const toastId = toast.loading("Salvando dados do usuário...");
+        
+        // Determina o endpoint correto
+        const endpoint = isPolicial ? `/api/staff/policial/${userToEdit.id}` : `/api/staff/civil/${userToEdit.id}`;
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(formData) // formData agora inclui 'permissoes' e 'status'
+            });
+            if (response.status === 401 || response.status === 403) { if(logout) logout(); throw new Error('Sessão inválida'); }
+            const data = await response.json();
+            if (!response.ok) { throw new Error(data.message || 'Erro ao salvar'); }
+            
+            toast.update(toastId, { render: data.message, type: 'success', isLoading: false, autoClose: 3000, icon: <AnimatedCheckmark /> });
+            onSave(); // Avisa o componente pai para recarregar a lista
+            
+        } catch (err) {
+            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000, icon: <AnimatedXMark /> });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // O admin logado é DEV?
+    const isAdminDev = adminUser?.permissoes?.is_dev === true;
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="modal-overlay" // Reutiliza Modal.css
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ scale: 0.95, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                        className="modal-content" // Reutiliza Modal.css
+                        style={{ maxWidth: '600px' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="modal-header">
+                            <h3>Editando {userToEdit.tipo}: {userToEdit.nome_completo}</h3>
+                            <button onClick={onClose} className="close-btn" disabled={isSubmitting}>&times;</button>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                                
+                                {/* --- SEÇÃO DE DADOS BÁSICOS --- */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="modal-form-group">
+                                        <label>Nome Completo *</label>
+                                        <input name="nome_completo" value={formData.nome_completo || ''} onChange={handleChange} disabled={isSubmitting} required />
+                                    </div>
+                                    <div className="modal-form-group">
+                                        <label>Passaporte *</label>
+                                        <input name="passaporte" value={formData.passaporte || ''} onChange={handleChange} disabled={isSubmitting} required />
+                                    </div>
+                                    
+                                    <div className="modal-form-group">
+                                        <label>Gmail</label>
+                                        <input type="email" name="gmail" value={formData.gmail || ''} onChange={handleChange} disabled={isSubmitting} />
+                                    </div>
+                                    <div className="modal-form-group">
+                                        <label>Telefone (RP)</label>
+                                        <input name="telefone_rp" value={formData.telefone_rp || ''} onChange={handleChange} disabled={isSubmitting} />
+                                    </div>
+                                    
+                                    {isPolicial && (
+                                        <>
+                                            <div className="modal-form-group">
+                                                <label>Discord ID</label>
+                                                <input name="discord_id" value={formData.discord_id || ''} onChange={handleChange} disabled={isSubmitting} />
+                                            </div>
+                                            <div className="modal-form-group">
+                                                <label>Corporação</label>
+                                                <input name="corporacao" value={formData.corporacao || ''} disabled={true} className="bg-slate-100" />
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* --- SEÇÃO DE CARREIRA (SÓ PARA POLICIAL) --- */}
+                                {isPolicial && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-200 mt-4">
+                                        <div className="modal-form-group">
+                                            <label>Patente (Promoção/Rebaixar)</label>
+                                            <select name="patente" value={formData.patente || ''} onChange={handleChange} disabled={isSubmitting} className="bg-white">
+                                                <option value="">-- Nenhuma --</option>
+                                                {patentesDisponiveis.map(p => <option key={p} value={p}>{p}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="modal-form-group">
+                                            <label>Divisão</label>
+                                            <select name="divisao" value={formData.divisao || ''} onChange={handleChange} disabled={isSubmitting} className="bg-white">
+                                                <option value="">-- Nenhuma --</option>
+                                                {divisoesDisponiveis.map(d => <option key={d} value={d}>{d}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* --- SEÇÃO DE STATUS E PERMISSÕES (SÓ PARA POLICIAL) --- */}
+                                {isPolicial && (
+                                    <div className="pt-4 border-t border-slate-200 mt-4">
+                                        <h4 className="text-md font-semibold text-slate-800 mb-2">Status e Permissões</h4>
+                                        <div className="modal-form-group">
+                                            <label>Status da Conta</label>
+                                            <select name="status" value={formData.status || 'Em Análise'} onChange={handleChange} disabled={isSubmitting} required className="bg-white">
+                                                <option value="Em Análise">Em Análise</option>
+                                                <option value="Aprovado">Aprovado (Ativo)</option>
+                                                <option value="Reprovado">Reprovado</option>
+                                                <option value="Suspenso">Suspenso</option>
+                                                <option value="Demitido">Demitido</option>
+                                            </select>
+                                        </div>
+
+                                        <PermissionToggle
+                                            label="Staff"
+                                            description="Acesso total ao Painel Staff (exceto painel técnico)."
+                                            isEnabled={!!formData.permissoes?.is_staff}
+                                            onToggle={() => handlePermissionToggle('is_staff')}
+                                            disabled={isSubmitting || userToEdit.id === 1} // ID 1 é DEV fixo
+                                        />
+                                        <PermissionToggle
+                                            label="Recursos Humanos (RH)"
+                                            description="Acesso ao Painel de RH (alistamento, promoções, etc.)."
+                                            isEnabled={!!formData.permissoes?.is_rh}
+                                            onToggle={() => handlePermissionToggle('is_rh')}
+                                            disabled={isSubmitting || userToEdit.id === 1}
+                                        />
+                                        <PermissionToggle
+                                            label="Desenvolvedor (Dev)"
+                                            description="Acesso ao Painel Técnico (configurações, tokens, etc.)."
+                                            isEnabled={!!formData.permissoes?.is_dev}
+                                            onToggle={() => handlePermissionToggle('is_dev')}
+                                            disabled={isSubmitting || userToEdit.id === 1 || !isAdminDev} // Apenas Devs podem setar outros Devs
+                                        />
+                                    </div>
+                                )}
+
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" onClick={onClose} className="btn-secondary" disabled={isSubmitting}>Cancelar</button>
+                                <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                                    {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
+                                </button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+
+// --- Modal: Suspender/Banir (Atualizado para Civis) ---
+const SuspendBanModal = ({ isOpen, onClose, user: userToEdit, onSave }) => {
+    const { token, logout } = useAuth();
+    const [acao, setAcao] = useState('suspender'); 
+    const [motivo, setMotivo] = useState('');
+    const [duracaoHoras, setDuracaoHoras] = useState(24);
+    const [banirIp, setBanirIp] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isCivil, setIsCivil] = useState(false);
+
+    // Opções de Ação
+    const acoesDisponiveis = {
+        Policial: [
+            { value: 'suspender', label: 'Suspender Conta' },
+            { value: 'banir', label: 'Banir (Demitir)' },
+            { value: 'reativar', label: 'Reativar (Aprovar)' }
+        ],
+        Civil: [
+            { value: 'banir', label: 'Banir (Deletar)' },
+            // Civis não podem ser suspensos ou reativados pois não têm status
+        ]
+    };
+
+    useEffect(() => {
+        if (isOpen && userToEdit) {
+            const userTipo = userToEdit.tipo;
+            setIsCivil(userTipo === 'Civil');
+
+            // Define a ação padrão
+            if (userTipo === 'Civil') {
+                setAcao('banir'); // Civil só pode ser banido
+            } else if (userToEdit.status === 'Aprovado' || userToEdit.status === 'Ativo') {
+                setAcao('suspender');
+            } else {
+                setAcao('reativar'); // Se já estiver suspenso/reprovado
+            }
+            
+            setMotivo('');
+            setDuracaoHoras(24);
+            setBanirIp(false);
+        }
+    }, [isOpen, userToEdit]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!motivo) {
+            toast.warn("O motivo é obrigatório para esta ação.");
+            return;
+        }
+        setIsSubmitting(true);
+        const toastId = toast.loading("Aplicando ação...");
+
+        const bodyData = {
+            acao: acao,
+            motivo: motivo,
+            duracaoHoras: acao === 'suspender' ? duracaoHoras : null,
+            banirIp: acao === 'banir' ? banirIp : false
+        };
+
+        try {
+            const response = await fetch(`/api/staff/user/${userToEdit.tipo}/${userToEdit.id}/action`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(bodyData)
+            });
+            if (response.status === 401 || response.status === 403) { if(logout) logout(); throw new Error('Sessão inválida'); }
+            const data = await response.json();
+            if (!response.ok) { throw new Error(data.message || 'Erro ao aplicar ação'); }
+            
+            toast.update(toastId, { render: data.message, type: 'success', isLoading: false, autoClose: 3000, icon: <AnimatedCheckmark /> });
+            onSave(); // Recarrega a lista
+
+        } catch (err) {
+            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000, icon: <AnimatedXMark /> });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (!isOpen || !userToEdit) return null;
+
+    // Atualiza as opções do select com base no tipo
+    const opcoesAtuais = acoesDisponiveis[userToEdit.tipo] || [];
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="modal-overlay"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ scale: 0.95, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                        className="modal-content"
+                        style={{ maxWidth: '500px' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="modal-header">
+                            <h3>Punição / Reversão</h3>
+                            <button onClick={onClose} className="close-btn" disabled={isSubmitting}>&times;</button>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="modal-body">
+                                <p className="mb-4"><strong>Usuário:</strong> {userToEdit.nome_completo} ({userToEdit.passaporte})</p>
+                                
+                                <div className="modal-form-group">
+                                    <label>Ação</label>
+                                    <select 
+                                        name="acao" 
+                                        value={acao} 
+                                        onChange={(e) => setAcao(e.target.value)} 
+                                        disabled={isSubmitting || isCivil} // Desabilita o select se for civil (só há 1 opção)
+                                        required 
+                                        className="bg-white"
+                                    >
+                                        {opcoesAtuais.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {acao === 'suspender' && !isCivil && (
+                                    <div className="modal-form-group">
+                                        <label>Duração da Suspensão (em horas)</label>
+                                        <input type="number" name="duracaoHoras" value={duracaoHoras} onChange={(e) => setDuracaoHoras(e.target.value)} min="1" disabled={isSubmitting} required />
+                                    </div>
+                                )}
+                                
+                                {acao === 'banir' && (
+                                    <div className="modal-form-group flex items-center gap-2 mt-4">
+                                        <input type="checkbox" id="banirIp" name="banirIp" checked={banirIp} onChange={(e) => setBanirIp(e.target.checked)} disabled={isSubmitting} className="w-4 h-4" />
+                                        <label htmlFor="banirIp" className="mb-0 font-medium text-red-700">Banir por IP (Ação permanente)</label>
+                                    </div>
+                                )}
+
+                                <div className="modal-form-group">
+                                    <label>Motivo *</label>
+                                    <textarea name="motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3} required disabled={isSubmitting} placeholder="Ex: Quebra de conduta..." />
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" onClick={onClose} className="btn-secondary" disabled={isSubmitting}>Cancelar</button>
+                                <button type="submit" className={acao === 'reativar' ? "btn-primary" : "btn-danger"} disabled={isSubmitting || !motivo}>
+                                    {isSubmitting ? 'Aplicando...' : (acao === 'reativar' ? 'Confirmar Reativação' : 'Confirmar Punição')}
+                                </button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+
+// --- [NOVO] Modal para Gerenciar IPs Banidos ---
+const ManageBannedIPsModal = ({ isOpen, onClose, token, logout }) => {
+    const [bannedIPs, setBannedIPs] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const fetchBannedIPs = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`/api/staff/banned-ips`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.status === 401 || response.status === 403) { if (logout) logout(); throw new Error('Sessão inválida'); }
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao buscar IPs banidos.');
+            setBannedIPs(data);
+        } catch (err) {
+            console.error("Erro ao buscar IPs banidos:", err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [token, logout]);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchBannedIPs();
+        }
+    }, [isOpen, fetchBannedIPs]);
+
+    const handleUnban = async (banId) => {
+        if (!window.confirm("Tem certeza que deseja perdoar (desbanir) este IP?")) return;
+        
+        const toastId = toast.loading("Perdoando IP...");
+        try {
+            const response = await fetch(`/api/staff/banned-ips/${banId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.status === 401 || response.status === 403) { if (logout) logout(); throw new Error('Sessão inválida'); }
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Erro ao perdoar IP.');
+            
+            toast.update(toastId, { render: data.message, type: 'success', isLoading: false, autoClose: 3000, icon: <AnimatedCheckmark /> });
+            fetchBannedIPs(); // Recarrega a lista
+        } catch (err) {
+            toast.update(toastId, { render: `Erro: ${err.message}`, type: 'error', isLoading: false, autoClose: 4000, icon: <AnimatedXMark /> });
+        }
+    };
+
+    const formatDateTime = (dateTimeString) => {
+        if (!dateTimeString) return 'N/A';
+        try { return new Date(dateTimeString).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' }); }
+        catch (e) { return 'Inválida'; }
+    };
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="modal-overlay"
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ scale: 0.95, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                        className="modal-content"
+                        style={{ maxWidth: '800px' }} // Modal mais largo
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="modal-header">
+                            <h3>Gerenciar IPs Banidos</h3>
+                            <button onClick={onClose} className="close-btn">&times;</button>
+                        </div>
+                        <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                            {loading && <p className="p-10 text-center text-slate-500">Carregando...</p>}
+                            {error && <p className="p-10 text-center text-red-600">{error}</p>}
+                            {!loading && !error && bannedIPs.length === 0 && (
+                                <p className="p-10 text-center text-slate-500">Nenhum IP banido encontrado.</p>
+                            )}
+                            {!loading && !error && bannedIPs.length > 0 && (
+                                <div className="table-responsive">
+                                    <table className="recrutas-table">
+                                        <thead>
+                                            <tr>
+                                                <th>IP</th>
+                                                <th>Motivo</th>
+                                                <th>Data</th>
+                                                <th>Ação</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {bannedIPs.map(ban => (
+                                                <tr key={ban.id}>
+                                                    <td className="font-mono">{ban.ip}</td>
+                                                    <td>{ban.motivo}</td>
+                                                    <td>{formatDateTime(ban.data_banimento)}</td>
+                                                    <td>
+                                                        <button 
+                                                            onClick={() => handleUnban(ban.id)} 
+                                                            className="btn-secondary" 
+                                                            style={{backgroundColor: '#10b981', borderColor: '#10b981'}}
+                                                            title="Perdoar este IP"
+                                                        >
+                                                            Perdoar
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button type="button" onClick={onClose} className="btn-secondary">Fechar</button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+// --- [FIM] NOVOS MODAIS DE GERENCIAMENTO DE USUÁRIO ---
+
+
 // --- COMPONENTE PRINCIPAL DA PÁGINA (ADMINPANEL) ---
 function AdminPanel() {
-    // ✅ CORREÇÃO: Adicionado 'isLoading'
-    const { user, logout, isLoading } = useAuth(); 
+    const { user, logout, isLoading, token } = useAuth(); 
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [currentView, setCurrentView] = useState('dashboard'); 
+    
+    // Estados para os Modais de Usuário
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [modalState, setModalState] = useState({
+        editUser: false,
+        // promoteUser: false, // <-- Removido
+        suspendUser: false,
+        manageBannedIPs: false, // <-- Adicionado
+    });
+    
+    // Estado para dados de Estrutura (passar para os modais)
+    const [structureData, setStructureData] = useState({ corporacoes: [], patentes: [], divisoes: [] });
+    const [loadingStructure, setLoadingStructure] = useState(true); 
 
     const hasAdminPermission = user?.type === 'policial' && (user?.permissoes?.is_staff === true || user?.permissoes?.is_city_admin === true);
     
-    // ✅ CORREÇÃO: Adicionada verificação 'isLoading'
+    // Handler para fechar todos os modais de usuário
+    const handleCloseUserModals = (refresh = false) => {
+        setModalState({ editUser: false, suspendUser: false, manageBannedIPs: false });
+        setSelectedUser(null);
+        if (refresh) {
+            // Força um "refresh" da view atual (ManageUsersView)
+            setCurrentView(''); 
+            setTimeout(() => setCurrentView('manage_users'), 0); 
+        }
+    };
+
+    // Handler para fechar modais do TechPanel
+    const handleCloseTechModals = (refresh = false) => {
+         setModalState({ editUser: false, suspendUser: false, manageBannedIPs: false });
+         if (refresh) {
+            setCurrentView(''); 
+            setTimeout(() => setCurrentView('tech_panel'), 0); 
+         }
+    };
+    
+    // Handlers para ABRIR os modais de usuário
+    const handleOpenEditModal = (user) => {
+        setSelectedUser(user);
+        setModalState(prev => ({ ...prev, editUser: true }));
+    };
+
+    const handleOpenSuspendModal = (user) => {
+        setSelectedUser(user);
+        setModalState(prev => ({ ...prev, suspendUser: true }));
+    };
+
+    // Handler para abrir modal de IP Banido (do TechPanel)
+    const handleOpenBannedIPsModal = () => {
+         setModalState(prev => ({ ...prev, manageBannedIPs: true }));
+    };
+
+    // Hook para carregar dados da Estrutura (necessário para os modais)
     useEffect(() => {
-        if (!isLoading) { // Só roda a verificação QUANDO o usuário terminar de carregar
+        const fetchStructureData = async () => {
+            if (isLoading || !token) return; 
+            
+            setLoadingStructure(true);
+            try {
+                const response = await fetch(`/api/staff/structure`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Falha ao carregar estrutura.');
+                const data = await response.json();
+                
+                const processedCorps = (data.corporacoes || []).map(corp => ({
+                    ...corp,
+                    permissoes: typeof corp.permissoes === 'string' && corp.permissoes.startsWith('{')
+                                ? JSON.parse(corp.permissoes)
+                                : (typeof corp.permissoes === 'object' && corp.permissoes !== null ? corp.permissoes : {})
+                }));
+                
+                setStructureData({
+                    corporacoes: processedCorps,
+                    patentes: data.patentes || [],
+                    divisoes: data.divisoes || []
+                    // Não precisamos mais da lista de policiais aqui, pois a search-users já traz tudo
+                });
+            } catch (err) {
+                console.error("Erro ao buscar dados de estrutura para o AdminPanel:", err);
+                toast.error("Não foi possível carregar os dados de patentes/divisões.", { icon: <AnimatedXMark /> });
+            } finally {
+                setLoadingStructure(false);
+            }
+        };
+
+        fetchStructureData();
+    }, [isLoading, token]); 
+
+    // Verificação de Acesso
+    useEffect(() => {
+        if (!isLoading) { 
             if (!user || user.type === 'civil' || !hasAdminPermission) {
                  if (user) {
                      toast.error("Acesso de Staff/RH deve ser feito pelo Login Policial.");
@@ -1542,11 +2217,10 @@ function AdminPanel() {
                  navigate('/policia/login', { replace: true }); 
             }
         }
-    }, [user, hasAdminPermission, navigate, logout, isLoading]); // ✅ Adicionada 'isLoading' na dependência
+    }, [user, hasAdminPermission, navigate, logout, isLoading]); 
 
 
-    // ✅ CORREÇÃO: Mostra 'Carregando' enquanto 'isLoading' for true
-    if (isLoading || !user || user.type !== 'policial' || !hasAdminPermission) {
+    if (isLoading || !user || user.type !== 'policial' || !hasAdminPermission || loadingStructure) {
          return (
              <div className="flex min-h-screen items-center justify-center bg-slate-100">
                  <div className="p-6 md:p-10 text-center">
@@ -1561,7 +2235,12 @@ function AdminPanel() {
             case 'dashboard':
                 return <DashboardView user={user} setView={setCurrentView} />;
             case 'manage_users':
-                return <ManageUsersView />;
+                return (
+                    <ManageUsersView 
+                        onEditUser={handleOpenEditModal}
+                        onSuspendUser={handleOpenSuspendModal}
+                    />
+                );
             case 'structure':
                 return <StructureView />;
             case 'logs':
@@ -1569,7 +2248,7 @@ function AdminPanel() {
             case 'bug_reports':
                 return <LogsView key="bugs" defaultActionFilter="Bug Report" />;
             case 'tech_panel':
-                return <TechPanelView />;
+                return <TechPanelView setModal={handleOpenBannedIPsModal} />;
             default:
                 return <DashboardView user={user} setView={setCurrentView} />;
         }
@@ -1607,8 +2286,34 @@ function AdminPanel() {
                     {renderCurrentView()}
                 </div>
             </main>
+
+            {/* --- Renderização dos Novos Modais --- */}
+            <EditUserModal 
+                isOpen={modalState.editUser}
+                onClose={() => handleCloseUserModals(false)}
+                onSave={() => handleCloseUserModals(true)}
+                user={selectedUser}
+                structureData={structureData}
+                adminUser={user} // Passa o admin logado para checar permissão de DEV
+            />
+            
+            <SuspendBanModal
+                isOpen={modalState.suspendUser}
+                onClose={() => handleCloseUserModals(false)}
+                onSave={() => handleCloseUserModals(true)}
+                user={selectedUser}
+            />
+
+            <ManageBannedIPsModal
+                isOpen={modalState.manageBannedIPs}
+                onClose={() => handleCloseTechModals(false)}
+                token={token}
+                logout={logout}
+            />
+
         </div>
     );
 }
 
 export default AdminPanel;
+

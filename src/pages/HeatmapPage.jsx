@@ -26,7 +26,6 @@ const ReportBugModal = ({ isOpen, onClose, token, logout }) => {
         setProcessing(true); setStatusMessage({ type: 'loading', text: 'Enviando relatório...' });
 
         try {
-            // ✅ CORREÇÃO: Removido API_URL para usar caminho relativo
             const response = await fetch(`/api/policia/report-bug`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ description })

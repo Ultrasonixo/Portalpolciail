@@ -5,8 +5,6 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import '../components/ImageSlider.css'; // Mantemos o CSS específico do slider
 
-// ✅ 1. Definir a URL da API
-const API_URL = 'http://localhost:5173';
 
 // ✅ 2. Definir os banners padrão (fallback)
 const fallbackImages = [
@@ -23,7 +21,7 @@ function HomePage() {
     useEffect(() => {
         const fetchPortalSettings = async () => {
             try {
-                const response = await fetch(`${API_URL}/api/public/portal-settings`);
+                const response = await fetch('/api/public/portal-settings');
                 if (!response.ok) {
                     throw new Error('Falha ao buscar banners.');
                 }
@@ -31,9 +29,10 @@ function HomePage() {
                 
                 // Verifica se o DB tem banners salvos
                 if (data.banner_images && data.banner_images.length > 0) {
-                    // Mapeia os caminhos salvos (ex: /uploads/img.png) para a URL completa
+                    // Mapeia os caminhos salvos (ex: /uploads/img.png)
                     const fullImagePaths = data.banner_images.map(imgPath => 
-                        imgPath.startsWith('http') ? imgPath : `${API_URL}${imgPath}`
+                        // Apenas usamos o caminho relativo. O proxy do Vite (dev) ou o Nginx (prod) resolverá.
+                        imgPath.startsWith('http') ? imgPath : imgPath
                     );
                     setImages(fullImagePaths);
                 } else {

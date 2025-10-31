@@ -1,20 +1,18 @@
-// server.js (Versão Final e Robusta com Recuperação de Senha)
-
-require('dotenv').config(); // Carrega variáveis de ambiente do arquivo .env
+require('dotenv').config(); 
 
 const express = require('express');
 const mysql = require('mysql2');
-const cors = require('cors'); // Para controle de acesso Cross-Origin
-const bcrypt = require('bcrypt'); // Para hashing de senhas
-const multer = require('multer'); // Para upload de arquivos
-const path = require('path'); // Para manipulação de caminhos de arquivo
-const fs = require('fs'); // Para deletar arquivos (logo)
-const jwt = require('jsonwebtoken'); // Para autenticação baseada em token
-const crypto = require('crypto'); // Para gerar tokens aleatórios
-const axios = require('axios'); // Para verificar reCAPTCHA
-const helmet = require('helmet'); // Middleware de segurança para headers HTTP
-const rateLimit = require('express-rate-limit'); // Middleware para limitar requisições
-const cron = require('node-cron'); // Para tarefas agendadas
+const cors = require('cors'); 
+const bcrypt = require('bcrypt'); 
+const multer = require('multer'); 
+const path = require('path'); 
+const fs = require('fs'); 
+const jwt = require('jsonwebtoken'); 
+const crypto = require('crypto'); 
+const axios = require('axios'); 
+const helmet = require('helmet'); 
+const rateLimit = require('express-rate-limit'); 
+const cron = require('node-cron'); 
 const nodemailer = require('nodemailer');
 
 const app = express();
@@ -25,7 +23,6 @@ const PORT = process.env.PORT || 3000;
 // =================================================================
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
 
-// --- Configuração do CORS ---
 const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const corsOptions = {
     origin: frontendURL,
@@ -38,7 +35,6 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.set('trust proxy', 1);
 
-// --- Limite de Requisições ---
 const limiterConfig = {
 	windowMs: 15 * 60 * 1000,
 	max: 200,
@@ -54,7 +50,7 @@ app.use('/api/', apiLimiter);
 // =================================================================
 const { 
     JWT_SECRET, RECAPTCHA_SECRET_KEY, DB_HOST, DB_USER, DB_PASSWORD, DB_DATABASE,
-    SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS // Variáveis do Titan
+    SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS 
 } = process.env;
 
 if (!JWT_SECRET || !RECAPTCHA_SECRET_KEY || !DB_HOST || !DB_USER || !DB_DATABASE) {
@@ -66,14 +62,11 @@ if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
      console.warn("AVISO: Variáveis SMTP (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) não estão definidas. A recuperação de senha falhará.");
 }
 
-// --- SERVIR ARQUIVOS ESTÁTICOS ---
-// Define a pasta 'uploads' como pública para que o frontend possa acessar as imagens
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // =================================================================
 // --- CONFIGURAÇÃO DE UPLOAD DE ARQUIVOS (MULTER) ---
 // =================================================================
-// Filtro de arquivo para aceitar apenas imagens
 const imageFileFilter = (req, file, cb) => {
     const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (allowedMimeTypes.includes(file.mimetype)) {
@@ -83,11 +76,9 @@ const imageFileFilter = (req, file, cb) => {
     }
 };
 
-// Configuração de armazenamento (salva em /uploads com nome único)
 const storage = multer.diskStorage({
     destination: function (req, file, cb) { 
         const uploadPath = 'uploads/';
-        // Cria o diretório se não existir
         fs.mkdirSync(uploadPath, { recursive: true });
         cb(null, uploadPath);
     },
@@ -98,7 +89,6 @@ const storage = multer.diskStorage({
     }
 });
 
-// UPLOAD GERAL (usado para BOs, etc)
 const uploadAnexos = multer({
     storage: storage,
     limits: { fileSize: 1024 * 1024 * 25 }, // 25MB
@@ -108,11 +98,10 @@ const uploadAnexos = multer({
     }
 });
 
-// UPLOAD SÓ DE IMAGEM (usado para Perfil e Logo do Portal)
 const uploadImagem = multer({
     storage: storage,
     limits: { fileSize: 1024 * 1024 * 5 }, // 5MB para logos/perfil
-    fileFilter: imageFileFilter // Reutiliza o filtro de imagem
+    fileFilter: imageFileFilter 
 });
 
 
@@ -131,7 +120,7 @@ const db = mysql.createPool({
 
 db.getConnection()
   .then(connection => {
-    console.log('Backend conectado com sucesso ao banco de dados.');
+    // console.log('Backend conectado com sucesso ao banco de dados.'); // REMOVIDO
     connection.release();
   })
   .catch(err => {
@@ -146,10 +135,10 @@ db.getConnection()
 const transporter = nodemailer.createTransport({
     host: SMTP_HOST, 
     port: SMTP_PORT, 
-    secure: true, // true para 465
+    secure: true, 
     auth: {
-        user: SMTP_USER, // E-mail de envio do .env
-        pass: SMTP_PASS  // Senha/Token do .env
+        user: SMTP_USER, 
+        pass: SMTP_PASS  
     }
 });
 
@@ -167,7 +156,7 @@ async function logAdminAction(userId, action, details, ipAddress) {
         const detailsString = typeof details === 'object' ? JSON.stringify(details) : String(details);
         const sql = 'INSERT INTO logs_auditoria (usuario_id, acao, detalhes, ip_address, data_log) VALUES (?, ?, ?, ?, NOW())';
         await db.query(sql, [userId, action, detailsString, ipAddress]);
-        console.log(`[Audit Log] User ${userId} | IP ${ipAddress} | Action: ${action}`);
+        // console.log(`[Audit Log] User ${userId} | IP ${ipAddress} | Action: ${action}`); // REMOVIDO
     } catch (logErr) {
         console.error(`ERRO AO LOGAR AÇÃO para User ${userId} (${action}) IP ${ipAddress}:`, logErr);
     }
@@ -212,18 +201,15 @@ const authenticateToken = (req, res, next) => {
             let user = null;
             let userType = null;
             
-            // ✅ CORREÇÃO: Tabela usuariospoliciais
             const [pRes] = await db.query('SELECT id, nome_completo, passaporte, patente, corporacao, divisao, permissoes, status FROM usuariospoliciais WHERE id = ?', [userId]);
             
             if (pRes.length > 0 && pRes[0].status === 'Aprovado') {
                 user = pRes[0];
                 userType = 'policial';
                 
-                // --- LÓGICA DE JUNÇÃO DE PERMISSÕES ---
                 let userPermissoes = {};
                 let corpPermissoes = {};
 
-                // 1. Permissões do Usuário
                 try {
                     if (typeof user.permissoes === 'string' && user.permissoes.startsWith('{')) {
                         userPermissoes = JSON.parse(user.permissoes);
@@ -232,7 +218,6 @@ const authenticateToken = (req, res, next) => {
                     }
                 } catch (e) { console.error(`[Auth] Erro ao parsear permissoes do POLICIAL ${user.id}:`, e.message); }
 
-                // 2. Permissões da Corporação
                 if (user.corporacao) {
                     const [corps] = await db.query("SELECT permissoes FROM corporacoes WHERE sigla = ?", [user.corporacao]);
                     if (corps.length > 0 && corps[0].permissoes) {
@@ -246,13 +231,10 @@ const authenticateToken = (req, res, next) => {
                     }
                 }
                 
-                // 3. Junta (Usuário sobrescreve Corporação)
                 user.permissoes = { ...corpPermissoes, ...userPermissoes };
-                // --- FIM DA LÓGICA DE JUNÇÃO ---
 
-                // Lógica do ID 1 (Admin master)
                 if (user.id === 1 && (!user.permissoes.is_staff || !user.permissoes.is_rh || !user.permissoes.is_dev)) {
-                    console.log(`[INIT] Aplicando permissão Staff/RH/Dev ao Policial ID ${user.id} (Primeiro login).`);
+                    // console.log(`[INIT] Aplicando permissão Staff/RH/Dev ao Policial ID ${user.id} (Primeiro login).`); // REMOVIDO
                     const newPermissoes = { 
                         is_staff: true, is_rh: true, is_dev: true, ...user.permissoes 
                     };
@@ -262,7 +244,6 @@ const authenticateToken = (req, res, next) => {
                 }
 
             } else {
-                // (Lógica de usuário civil inalterada)
                 const [cRes] = await db.query('SELECT id, nome_completo, id_passaporte, cargo FROM usuarios WHERE id = ?', [userId]);
                 if (cRes.length > 0) {
                     user = cRes[0];
@@ -283,7 +264,6 @@ const authenticateToken = (req, res, next) => {
 };
 app.use(authenticateToken);
 
-// (Middleware checkRh, checkStaff, etc. inalterados...)
 const requireAuth = (type) => (req, res, next) => {
     if (!req.user) return res.status(401).json({ message: 'Acesso negado. Token é necessário.' });
     if (req.user.permissoes?.is_rh || req.user.permissoes?.is_staff) {
@@ -298,12 +278,10 @@ const checkRh = (req, res, next) => {
     else res.status(403).json({ message: 'Acesso negado. Apenas para administradores RH.' });
 };
 const checkCivilPolice = (req, res, next) => {
-    // ✅ CORREÇÃO DE PERMISSÃO: Substituído 'corporacao === PC' por 'permissoes.podeEditarBO'
     if (req.user?.type === 'policial' && req.user.permissoes?.podeEditarBO === true) next();
     else res.status(403).json({ message: 'Acesso negado. Você não tem permissão para editar boletins.' });
 };
 const checkCanAssumeBo = (req, res, next) => {
-    // ✅ NOVA CHECAGEM: Permissão específica para ASSUMIR
     if (req.user?.type === 'policial' && req.user.permissoes?.podeAssumirBO === true) next();
     else res.status(403).json({ message: 'Acesso negado. Você não tem permissão para assumir boletins.' });
 };
@@ -336,8 +314,6 @@ const checkIsPoliceAuthenticated = requireAuth('policial');
 // --- ROTAS ---
 // =================================================================
 
-// --- ROTAS PÚBLICAS (sem requireAuth ou check*) ---
-
 app.get('/api/public/portal-settings', async (req, res) => {
     const db = getDbConnection(req);
     const defaults = {
@@ -345,10 +321,9 @@ app.get('/api/public/portal-settings', async (req, res) => {
         header_subtitle: "Portal Oficial",
         header_logo_url: "/brasao.png",
         footer_copyright: `© ${new Date().getFullYear()} Consolação Paulista Roleplay. Todos os direitos reservados.`,
-        banner_images: "[]" // ✅ ADICIONA O PADRÃO (LISTA VAZIA)
+        banner_images: "[]" 
     };
     try {
-        // ✅ ADICIONA 'banner_images' NA LISTA
         const [settings] = await db.query("SELECT setting_key, setting_value FROM portal_settings WHERE setting_key IN ('header_title', 'header_subtitle', 'header_logo_url', 'footer_copyright', 'banner_images')");
         
         const settingsObj = settings.reduce((acc, { setting_key, setting_value }) => {
@@ -360,108 +335,20 @@ app.get('/api/public/portal-settings', async (req, res) => {
         
         const finalSettings = { ...defaults, ...settingsObj };
 
-        // ✅ GARANTE QUE OS BANNERS SEJAM UM ARRAY AO ENVIAR
         try {
             finalSettings.banner_images = JSON.parse(finalSettings.banner_images);
         } catch (e) {
-            finalSettings.banner_images = []; // Fallback se o JSON estiver corrompido
+            finalSettings.banner_images = []; 
         }
 
         res.status(200).json(finalSettings);
     } catch (err) {
          console.error("Erro ao buscar portal_settings (Tabela existe?):", err.message);
-         // ✅ Adiciona o padrão de banners ao fallback
          defaults.banner_images = [];
          res.status(200).json(defaults);
     }
 });
 
-app.put('/api/staff/banner-images', checkStaff, uploadAnexos.array('banners', 10), async (req, res) => {
-    const db = getDbConnection(req);
-    const adminUser = req.user;
-    const ipAddress = req.ip;
-
-    // existing_images é um array (stringificado) de URLs de banners que o usuário decidiu MANTER
-    const { existing_images } = req.body; 
-    const newFiles = req.files || []; // Novos arquivos do upload
-
-    let keptImages = [];
-    try {
-        if (existing_images) {
-            keptImages = JSON.parse(existing_images);
-            if (!Array.isArray(keptImages)) throw new Error("Formato inválido.");
-        }
-    } catch (e) {
-        return res.status(400).json({ message: "Formato de 'existing_images' inválido. Deve ser um array JSON." });
-    }
-
-    // 1. Mapeia os novos arquivos para seus caminhos de URL
-    const newImagePaths = newFiles.map(file => `/uploads/${file.filename}`);
-
-    // 2. Cria a lista final de banners
-    const finalBannerList = [...keptImages, ...newImagePaths];
-
-    // 3. Verifica o limite de 10 banners
-    if (finalBannerList.length > 10) {
-        // Se excedeu, deleta os arquivos que acabamos de subir
-        newImagePaths.forEach(filePath => {
-            const diskPath = path.join(__dirname, filePath);
-            fs.unlink(diskPath, (err) => {
-                if (err) console.error(`[Staff Banners] Falha ao limpar arquivo extra: ${diskPath}`, err);
-            });
-        });
-        return res.status(400).json({ message: `Limite de 10 banners excedido. Você tentou salvar ${finalBannerList.length}.` });
-    }
-
-    const finalBannerListJson = JSON.stringify(finalBannerList);
-
-    try {
-        // 4. Busca a lista ANTIGA de banners no DB (para saber quais deletar do disco)
-        const [oldSettings] = await db.query("SELECT setting_value FROM portal_settings WHERE setting_key = 'banner_images'");
-        let oldBannerList = [];
-        if (oldSettings.length > 0 && oldSettings[0].setting_value) {
-            try { oldBannerList = JSON.parse(oldSettings[0].setting_value); } catch (e) {}
-        }
-
-        // 5. Salva a NOVA lista de banners no DB
-        await db.query(
-            "INSERT INTO portal_settings (setting_key, setting_value) VALUES ('banner_images', ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
-            [finalBannerListJson]
-        );
-
-        // 6. Limpa arquivos órfãos (que estavam na lista antiga mas não estão na nova)
-        oldBannerList.forEach(oldImagePath => {
-            if (!finalBannerList.includes(oldImagePath) && oldImagePath.startsWith('/uploads/')) {
-                const diskPath = path.join(__dirname, oldImagePath);
-                fs.unlink(diskPath, (err) => {
-                    if (err) console.error(`[Staff Banners] Falha ao deletar banner antigo: ${diskPath}`, err);
-                    else console.log(`[Staff Banners] Banner antigo deletado: ${diskPath}`);
-                });
-            }
-        });
-
-        const logDetails = {
-            action: 'Update Banners',
-            newCount: finalBannerList.length,
-            added: newImagePaths.length,
-            removed: oldBannerList.length - keptImages.length,
-            adminId: adminUser.id
-        };
-        await logAdminAction(adminUser.id, 'Update Portal Settings', logDetails, ipAddress);
-
-        res.status(200).json({ 
-            message: 'Banners atualizados com sucesso!', 
-            banner_images: finalBannerList // Retorna a nova lista para o frontend
-        });
-
-    } catch (err) {
-        console.error(`[Staff Banners] Erro ao salvar banners (IP: ${ipAddress}):`, err);
-        res.status(500).json({ message: "Erro interno ao salvar banners." });
-    }
-});
-
-
-// Registro de Cidadão
 app.post('/api/auth/register', async (req, res) => {
     const db = getDbConnection(req);
     const recaptchaToken = req.body.recaptchaToken;
@@ -483,7 +370,6 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
-// Login de Cidadão
 app.post('/api/auth/login', async (req, res) => {
     const db = getDbConnection(req);
     const recaptchaToken = req.body.recaptchaToken;
@@ -500,27 +386,23 @@ app.post('/api/auth/login', async (req, res) => {
         const senhaCorreta = await bcrypt.compare(senha, usuario.senha_hash);
         if (!senhaCorreta) return res.status(401).json({ message: 'Credenciais inválidas.' });
         
-        // ✅ CORREÇÃO: Payload do civil SÓ deve ter o ID
-        const payloadCidadao = { id: usuario.id, type: 'civil' }; // Adiciona 'type'
+        const payloadCidadao = { id: usuario.id, type: 'civil' }; 
         const tokenCidadao = jwt.sign(payloadCidadao, JWT_SECRET, { expiresIn: '12h' });
         
         return res.status(200).json({
             message: 'Login bem-sucedido!', token: tokenCidadao,
-            // ✅ CORREÇÃO: Renomeado para 'usuario' para bater com o AuthContext
             usuario: { 
                 id: usuario.id, 
                 id_passaporte: usuario.id_passaporte, 
                 nome_completo: usuario.nome_completo, 
                 cargo: usuario.cargo, 
                 type: 'civil',
-                permissoes: {} // Civil não tem permissões especiais
+                permissoes: {} 
             }
         });
     } catch (err) { console.error("Erro no login de cidadão:", err); return res.status(500).json({ message: 'Erro interno do servidor durante o login.' }); }
 });
 
-
-// --- ROTA PÚBLICA PARA SOLICITAR RECUPERAÇÃO DE SENHA (FORGOT) ---
 app.post('/api/auth/forgot-password', async (req, res) => {
     const db = getDbConnection(req);
     const { email } = req.body;
@@ -533,25 +415,20 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     }
 
     try {
-        // 1. Verifica se o usuário existe (Busca pelo Gmail)
         const [results] = await db.query('SELECT id, nome_completo, gmail FROM usuarios WHERE gmail = ?', [email]);
         if (results.length === 0) {
-            // ✅ REQUISITO: Retorna erro 404 se o e-mail não for encontrado
             return res.status(404).json({ message: 'Seu Gmail não está cadastrado. Impossível redefinir senha.' });
         }
         const usuario = results[0];
 
-        // 2. Cria um CÓDIGO de 6 dígitos
         recoveryCode = crypto.randomInt(100000, 999999).toString();
-        const expiresAt = new Date(Date.now() + 600000); // Expira em 10 minutos
+        const expiresAt = new Date(Date.now() + 600000); 
         
         const salt = await bcrypt.genSalt(10);
         hashedCode = await bcrypt.hash(recoveryCode, salt);
         
-        // 3. Salva o HASH do código no banco de dados
         await db.query('INSERT INTO password_reset_tokens (token_hash, user_id, expires_at) VALUES (?, ?, ?)', [hashedCode, usuario.id, expiresAt]);
 
-        // 4. Envia o E-mail com o design "Vertex System"
         const emailHtml = `
             <body style="background-color: #f3f4f6; padding: 20px; font-family: Arial, sans-serif; margin: 0;">
                 <table width="100%" border="0" cellspacing="0" cellpadding="0">
@@ -599,7 +476,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
             html: emailHtml,
         });
 
-        console.log(`[AUTH] E-mail de RECUPERAÇÃO (CÓDIGO) enviado para: ${email} (IP: ${ipAddress})`);
+        // console.log(`[AUTH] E-mail de RECUPERAÇÃO (CÓDIGO) enviado para: ${email} (IP: ${ipAddress})`); // REMOVIDO
         return res.status(200).json({ message: 'Se o Gmail estiver cadastrado, as instruções de redefinição de senha foram enviadas.' });
 
     } catch (err) {
@@ -613,8 +490,6 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     }
 });
 
-
-// --- ETAPA 2 (Cidadão): VERIFICAR O CÓDIGO DE 6 DÍGITOS ---
 app.post('/api/auth/verify-code', async (req, res) => {
     const db = getDbConnection(req);
     const { email, code } = req.body; 
@@ -652,7 +527,6 @@ app.post('/api/auth/verify-code', async (req, res) => {
             return res.status(400).json({ message: 'Código inválido ou expirado.' });
         }
         
-        // ✅ Ação específica para Cidadão
         const resetPayload = { id: usuario.id, action: 'reset-password-civil', type: 'civil' }; 
         const resetToken = jwt.sign(resetPayload, JWT_SECRET, { expiresIn: '10m' }); 
 
@@ -666,8 +540,6 @@ app.post('/api/auth/verify-code', async (req, res) => {
     }
 });
 
-
-// --- ETAPA 3 (Cidadão): REDEFINIR A SENHA (USANDO O TOKEN DA ETAPA 2) ---
 app.post('/api/auth/reset-password', async (req, res) => {
     const db = getDbConnection(req);
     const { resetToken, newPassword } = req.body;
@@ -689,7 +561,6 @@ app.post('/api/auth/reset-password', async (req, res) => {
             return res.status(401).json({ message: 'Token de redefinição inválido ou expirado.' });
         }
 
-        // ✅ Verifica a Ação Específica de Cidadão
         if (decodedPayload.action !== 'reset-password-civil' || !decodedPayload.id || decodedPayload.type !== 'civil') {
             return res.status(401).json({ message: 'Token inválido.' });
         }
@@ -699,7 +570,6 @@ app.post('/api/auth/reset-password', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const senha_hash = await bcrypt.hash(newPassword, salt);
         
-        // ✅ Atualiza a tabela 'usuarios'
         const updateSql = 'UPDATE usuarios SET senha_hash = ? WHERE id = ?';
         const [updateResult] = await db.query(updateSql, [senha_hash, userId]);
 
@@ -707,7 +577,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
              return res.status(500).json({ message: 'Falha ao atualizar a senha do usuário.' });
         }
         
-        console.log(`[AUTH] Senha redefinida (via token JWT) para o usuário ID: ${userId} (IP: ${ipAddress})`);
+        // console.log(`[AUTH] Senha redefinida (via token JWT) para o usuário ID: ${userId} (IP: ${ipAddress})`); // REMOVIDO
         return res.status(200).json({ message: 'Senha redefinida com sucesso! Você já pode fazer login.' });
 
     } catch (err) {
@@ -716,7 +586,6 @@ app.post('/api/auth/reset-password', async (req, res) => {
     }
 });
 
-// Listar Concursos (Público)
 app.get('/api/concursos', async (req, res) => {
     const db = getDbConnection(req);
     try {
@@ -740,9 +609,6 @@ app.get('/api/concursos', async (req, res) => {
     }
 });
 
-
-// --- ROTAS DE REGISTRO/LOGIN POLICIAL (sem requireAuth, mas têm reCAPTCHA) ---
-// Registro Policial (requer token de registro)
 app.post('/api/policia/register', async (req, res) => {
     const db = getDbConnection(req);
     const recaptchaToken = req.body.recaptchaToken;
@@ -762,7 +628,6 @@ app.post('/api/policia/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const senha_hash = await bcrypt.hash(senha, salt);
         
-        // ✅ CORREÇÃO: Tabela usuariospoliciais
         const [resUser] = await db.query(`INSERT INTO usuariospoliciais (nome_completo, passaporte, discord_id, telefone_rp, gmail, senha_hash, status, corporacao) VALUES (?, ?, ?, ?, ?, ?, "Em Análise", ?)`, [nome_completo, passaporte, discord_id, telefone_rp, gmail, senha_hash, tokenData.corporacao]);
         const novoPolicialId = resUser.insertId;
         
@@ -784,15 +649,11 @@ app.post('/api/policia/register', async (req, res) => {
     }
 });
 
-// ===============================================================
-// --- ✅ ROTA DE LOGIN POLICIAL CORRIGIDA E ATUALIZADA ---
-// ===============================================================
 app.post('/api/policia/login', async (req, res) => {
     const db = getDbConnection(req);
     const { passaporte, senha } = req.body;
     const ipAddress = req.ip;
 
-    // Recaptcha
     const recaptchaToken = req.body.recaptchaToken; 
     const verificationResult = await verifyRecaptcha(recaptchaToken, req.ip);
     if (!verificationResult.success) {
@@ -804,7 +665,13 @@ app.post('/api/policia/login', async (req, res) => {
     }
 
     try {
-        // ✅ CORREÇÃO 1: Usando a tabela 'usuariospoliciais'
+        // --- [NOVO] VERIFICA BANIMENTO DE IP ---
+        const [ipBanRows] = await db.query('SELECT * FROM banned_ips WHERE ip = ?', [ipAddress]);
+        if (ipBanRows.length > 0) {
+            return res.status(403).json({ message: 'Acesso bloqueado. Este endereço de IP foi banido.' });
+        }
+        // --- [FIM] VERIFICA BANIMENTO DE IP ---
+
         const [policiais] = await db.query("SELECT * FROM usuariospoliciais WHERE passaporte = ?", [passaporte]); 
         if (policiais.length === 0) {
             return res.status(401).json({ message: 'Passaporte ou senha inválidos.' });
@@ -812,13 +679,11 @@ app.post('/api/policia/login', async (req, res) => {
 
         const policial = policiais[0];
 
-        // ✅ CORREÇÃO 2: Usando a coluna 'senha_hash' (do seu código antigo e do SQL)
         const senhaValida = await bcrypt.compare(senha, policial.senha_hash); 
         if (!senhaValida) {
             return res.status(401).json({ message: 'Passaporte ou senha inválidos.' });
         }
 
-        // (Lógica de status do seu código antigo)
         if (policial.status !== 'Aprovado') {
              let statusMessage = 'Sua conta não está aprovada.';
              if (policial.status === 'Rejeitado') statusMessage = 'Seu alistamento foi rejeitado.';
@@ -826,10 +691,10 @@ app.post('/api/policia/login', async (req, res) => {
              if (policial.status === 'Suspenso') statusMessage = 'Sua conta está suspensa.';
              return res.status(403).json({ message: statusMessage, status: policial.status });
         }
-
-        // --- ✅ LÓGICA DE PERMISSÕES (COM CHECAGEM DE NULL) ---
         
-        // 1. Busca permissões do usuário (ex: is_rh, is_staff)
+        // --- Atualiza last_ip e last_login ---
+        await db.query('UPDATE usuariospoliciais SET last_ip = ?, last_login = NOW() WHERE id = ?', [ipAddress, policial.id]);
+        
         let userPermissoes = {};
         try {
             if (typeof policial.permissoes === 'string' && policial.permissoes.startsWith('{')) {
@@ -841,7 +706,6 @@ app.post('/api/policia/login', async (req, res) => {
             console.error(`[Login Policial] Erro ao parsear permissoes do POLICIAL ${policial.id}:`, e.message);
         }
 
-        // 2. Busca permissões da CORPORAÇÃO (ex: podeAssumirBO)
         let corpPermissoes = {};
         if (policial.corporacao) {
             const [corps] = await db.query("SELECT permissoes FROM corporacoes WHERE sigla = ?", [policial.corporacao]);
@@ -858,29 +722,22 @@ app.post('/api/policia/login', async (req, res) => {
             }
         }
         
-        // 3. Junta as permissões (permissões do usuário têm prioridade)
         const finalPermissoes = { ...corpPermissoes, ...userPermissoes };
         
-        // --- FIM DA LÓGICA DE PERMISSÕES ---
-
-        // 4. Cria o Token com as permissões FINAIS
         const payload = { 
             id: policial.id, 
             passaporte: policial.passaporte, 
             corporacao: policial.corporacao, 
             type: 'policial',
-            permissoes: finalPermissoes // ✅ Usa as permissões combinadas
+            permissoes: finalPermissoes 
         };
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '8h' });
 
-        // Loga a ação de login (assumindo que logAdminAction existe)
         await logAdminAction(policial.id, 'Login', { status: 'Sucesso', type: 'Policial' }, ipAddress);
         
-        // 5. Envia o usuário E as permissões FINAIS para o frontend
-        // ✅ CORREÇÃO 3: Envia 'policial' (como o seu código antigo) para bater com o LoginPolicial.jsx
         res.json({ 
             token, 
-            policial: { // <--- O NOME DA CHAVE É 'policial'
+            policial: { 
                 id: policial.id,
                 nome_completo: policial.nome_completo,
                 passaporte: policial.passaporte,
@@ -889,7 +746,7 @@ app.post('/api/policia/login', async (req, res) => {
                 patente: policial.patente,
                 foto_url: policial.foto_url,
                 type: 'policial',
-                permissoes: finalPermissoes // ✅ Envia as permissões combinadas
+                permissoes: finalPermissoes 
             } 
         });
 
@@ -898,47 +755,37 @@ app.post('/api/policia/login', async (req, res) => {
         res.status(500).json({ message: 'Erro interno no servidor.' });
     }
 });
-// ===============================================================
-// --- FIM DA ROTA DE LOGIN POLICIAL CORRIGIDA ---
-// ===============================================================
 
-
-// --- ETAPA 1 (Policial): SOLICITAR O CÓDIGO DE 6 DÍGITOS ---
 app.post('/api/policia/forgot-password', async (req, res) => {
     const db = getDbConnection(req);
-    const { email } = req.body; // ✅ REQUISITO: Apenas E-mail
+    const { email } = req.body; 
     const ipAddress = req.ip;
     let recoveryCode = null; 
     let hashedCode = null; 
 
-    if (!email) { // ✅ REQUISITO: Apenas E-mail
+    if (!email) { 
         return res.status(400).json({ message: 'Por favor, forneça o Gmail de cadastro.' });
     }
 
     try {
-        // 1. Verifica se o usuário existe (Busca APENAS pelo Gmail)
         const [results] = await db.query(
-            'SELECT id, nome_completo, gmail FROM usuariospoliciais WHERE gmail = ?', // ✅ Tabela 'usuariospoliciais'
+            'SELECT id, nome_completo, gmail FROM usuariospoliciais WHERE gmail = ?', 
             [email] 
         );
         
         if (results.length === 0) {
-            // ✅ REQUISITO 2: Retorna erro 404 se o e-mail não for encontrado
             return res.status(404).json({ message: 'Seu Gmail não está cadastrado. Impossível redefinir senha.' });
         }
         const usuario = results[0];
 
-        // 2. Cria um CÓDIGO de 6 dígitos
         recoveryCode = crypto.randomInt(100000, 999999).toString();
-        const expiresAt = new Date(Date.now() + 600000); // Expira em 10 minutos
+        const expiresAt = new Date(Date.now() + 600000); 
         
         const salt = await bcrypt.genSalt(10);
         hashedCode = await bcrypt.hash(recoveryCode, salt);
         
-        // 3. Salva o HASH do código no banco de dados
         await db.query('INSERT INTO password_reset_tokens (token_hash, user_id, expires_at) VALUES (?, ?, ?)', [hashedCode, usuario.id, expiresAt]);
 
-        // 4. Envia o E-mail com o design "Vertex System"
         const emailHtml = `
             <body style="background-color: #f3f4f6; padding: 20px; font-family: Arial, sans-serif; margin: 0;">
                 <table width="100%" border="0" cellspacing="0" cellpadding="0">
@@ -986,7 +833,7 @@ app.post('/api/policia/forgot-password', async (req, res) => {
             html: emailHtml,
         });
 
-        console.log(`[AUTH-Policial] E-mail de RECUPERAÇÃO (CÓDIGO) enviado para: ${email} (IP: ${ipAddress})`);
+        // console.log(`[AUTH-Policial] E-mail de RECUPERAÇÃO (CÓDIGO) enviado para: ${email} (IP: ${ipAddress})`); // REMOVIDO
         return res.status(200).json({ message: 'Se o Gmail estiver cadastrado, as instruções de redefinição de senha foram enviadas.' });
 
     } catch (err) {
@@ -994,32 +841,27 @@ app.post('/api/policia/forgot-password', async (req, res) => {
         if (hashedCode) {
             try { await db.query('DELETE FROM password_reset_tokens WHERE token_hash = ?', [hashedCode]); } catch (e) {}
         }
-        // ✅ CORREÇÃO 500: Retorna 500 se o erro NÃO for 404 (que já foi tratado)
         if (res.statusCode !== 404) {
             return res.status(500).json({ message: 'Erro interno ao processar a solicitação. Verifique o console do servidor.' });
         }
     }
 });
 
-
-// --- ETAPA 2 (Policial): VERIFICAR O CÓDIGO DE 6 DÍGITOS ---
 app.post('/api/policia/verify-code', async (req, res) => {
     const db = getDbConnection(req);
-    const { email, code } = req.body; // ✅ Apenas E-mail e Código
+    const { email, code } = req.body; 
 
     if (!email || !code) {
         return res.status(400).json({ message: 'E-mail e Código são obrigatórios.' });
     }
 
     try {
-        // ✅ Busca o usuário policial apenas pelo e-mail
         const [userResults] = await db.query('SELECT id FROM usuariospoliciais WHERE gmail = ?', [email]);
         if (userResults.length === 0) {
             return res.status(400).json({ message: 'Código inválido ou expirado.' });
         }
         const usuario = userResults[0];
 
-        // O restante da lógica de verificação do código continua igual
         const [tokenResults] = await db.query(
             'SELECT token_hash FROM password_reset_tokens WHERE user_id = ? AND expires_at > NOW()', 
             [usuario.id]
@@ -1055,8 +897,6 @@ app.post('/api/policia/verify-code', async (req, res) => {
     }
 });
 
-
-// --- ETAPA 3 (Policial): REDEFINIR A SENHA ---
 app.post('/api/policia/reset-password', async (req, res) => {
     const db = getDbConnection(req);
     const { resetToken, newPassword } = req.body;
@@ -1071,7 +911,6 @@ app.post('/api/policia/reset-password', async (req, res) => {
     }
 
     try {
-        // 1. Verifica o JWT (resetToken)
         let decodedPayload;
         try {
             decodedPayload = jwt.verify(resetToken, JWT_SECRET);
@@ -1079,18 +918,15 @@ app.post('/api/policia/reset-password', async (req, res) => {
             return res.status(401).json({ message: 'Token de redefinição inválido ou expirado.' });
         }
 
-        // 2. Verifica se o payload é para 'reset-password-policial'
         if (decodedPayload.action !== 'reset-password-policial' || !decodedPayload.id || decodedPayload.type !== 'policial') {
             return res.status(401).json({ message: 'Token inválido.' });
         }
         
         const userId = decodedPayload.id;
 
-        // 3. Gera o hash da nova senha
         const salt = await bcrypt.genSalt(10);
         const senha_hash = await bcrypt.hash(newPassword, salt);
         
-        // 4. Atualiza a senha do POLICIAL
         const updateSql = 'UPDATE usuariospoliciais SET senha_hash = ? WHERE id = ?';
         const [updateResult] = await db.query(updateSql, [senha_hash, userId]);
 
@@ -1098,7 +934,7 @@ app.post('/api/policia/reset-password', async (req, res) => {
              return res.status(500).json({ message: 'Falha ao atualizar a senha do policial.' });
         }
         
-        console.log(`[AUTH-Policial] Senha redefinida (via token JWT) para o usuário ID: ${userId} (IP: ${ipAddress})`);
+        // console.log(`[AUTH-Policial] Senha redefinida (via token JWT) para o usuário ID: ${userId} (IP: ${ipAddress})`); // REMOVIDO
         return res.status(200).json({ message: 'Senha redefinida com sucesso! Você já pode fazer login.' });
 
     } catch (err) {
@@ -1148,7 +984,6 @@ app.get('/api/admin/recrutas', checkRh, async (req, res) => {
      } catch (err) { console.error("Erro ao buscar recrutas pendentes:", err); res.status(500).json({ message: "Erro interno ao buscar recrutas." }); }
  });
 
-// Rota para Aprovar/Reprovar Recrutas
 app.put('/api/admin/recrutas/:id', checkRh, async (req, res) => {
     const db = getDbConnection(req);
     const { id } = req.params;
@@ -1186,7 +1021,7 @@ app.put('/api/admin/recrutas/:id', checkRh, async (req, res) => {
             histDesc = `Aprovado por ${adminUser.nome_completo}. Corporação: ${recruta.corporacao}, Divisão: ${divisao}, Patente Inicial: ${patenteParaSalvar}.`;
             logAction = 'Approve Recruit';
 
-        } else { // Reprovado
+        } else { 
             patenteParaSalvar = null;
             tipoEvento = 'Reprovação';
             sql = "UPDATE usuariospoliciais SET status = ?, patente = NULL, divisao = NULL WHERE id = ?";
@@ -1221,7 +1056,7 @@ app.put('/api/admin/recrutas/:id', checkRh, async (req, res) => {
     }
 });
 
-app.put('/api/admin/gerenciar-policial', checkRh, async (req, res) => { // Rota para Promoção/Rebaixamento
+app.put('/api/admin/gerenciar-policial', checkRh, async (req, res) => { 
     const db = getDbConnection(req);
     const { policialId, acao, novaPatente } = req.body;
     const adminUser = req.user;
@@ -1261,7 +1096,6 @@ app.get('/api/admin/lista-oficiais', checkRh, async (req, res) => {
     } catch (err) { console.error("Erro ao listar oficiais (admin):", err); res.status(500).json({ message: "Erro interno ao listar oficiais." }); }
 });
 
-// Rota para criar anúncios (AJUSTADA)
 app.post('/api/admin/anuncios', checkRh, async (req, res) => {
     const db = getDbConnection(req);
     const { titulo, conteudo, corporacao } = req.body;
@@ -1292,7 +1126,7 @@ app.post('/api/admin/anuncios', checkRh, async (req, res) => {
     }
 
     try {
-        console.log(`[Anuncio] Admin ${autor_id} publicando para: ${targetCorporacao || 'Geral'}`);
+        // console.log(`[Anuncio] Admin ${autor_id} publicando para: ${targetCorporacao || 'Geral'}`); // REMOVIDO
 
         const [result] = await db.query(
             'INSERT INTO anuncios (titulo, conteudo, autor_id, corporacao, data_publicacao) VALUES (?, ?, ?, ?, NOW())',
@@ -1341,7 +1175,6 @@ app.put('/api/admin/demitir/:id', checkRh, async (req, res) => {
     } catch (err) { console.error(`Erro ao demitir policial ${targetId} (IP: ${ipAddress}):`, err); res.status(500).json({ message: "Erro interno ao tentar demitir policial." }); }
 });
 
-// --- [ATUALIZADO] Rota de Logs agora usa checkRhOrStaffOrDev ---
 app.get('/api/admin/logs', checkRhOrStaffOrDev, async (req, res) => {
     const db = getDbConnection(req);
     const { page = 1, limit = 15, text = '', action = '', date = '' } = req.query;
@@ -1360,9 +1193,9 @@ app.get('/api/admin/logs', checkRhOrStaffOrDev, async (req, res) => {
         if (!canViewAll) {
             whereClauses.push('(u.corporacao = ? OR l.acao = "Bug Report" OR l.detalhes LIKE ?)');
             params.push(adminCorporacao, `%"corp":"${adminCorporacao}"%`);
-            console.log(`[Logs] Acesso restrito para RH da corporação: ${adminCorporacao} (User: ${adminUser.id})`);
+            // console.log(`[Logs] Acesso restrito para RH da corporação: ${adminCorporacao} (User: ${adminUser.id})`); // REMOVIDO
         } else {
-            console.log(`[Logs] Acesso geral para Staff/Dev/RH Geral (User: ${adminUser.id})`);
+            // console.log(`[Logs] Acesso geral para Staff/Dev/RH Geral (User: ${adminUser.id})`); // REMOVIDO
         }
 
         if (text) {
@@ -1437,7 +1270,7 @@ app.get('/api/admin/search-policiais', checkRh, async (req, res) => {
     }
 });
 
-app.put('/api/admin/update-policial/:id', checkRh, async (req, res) => { // Rota para editar dados gerais
+app.put('/api/admin/update-policial/:id', checkRh, async (req, res) => { 
     const db = getDbConnection(req);
     const admin = req.user; const targetId = req.params.id; const newData = req.body;
     const ipAddress = req.ip;
@@ -1505,7 +1338,6 @@ app.post('/api/admin/concursos', checkRh, async (req, res) => {
             console.warn(`[Admin] Falha ao criar concurso (provavelmente 'valor' ou 'corporacao' ausente), tentando fallback V2... IP: ${ipAddress}. Erro: ${err.message}`);
             
             try {
-                // Tenta sem 'valor'
                 const fallbackSqlV2 = `INSERT INTO concursos (titulo, descricao, vagas, status, data_abertura, data_encerramento, link_edital, autor_id, data_publicacao, corporacao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)`;
                 const fallbackValuesV2 = [titulo, descricao, numVagas, status, data_abertura, data_encerramento, link_edital || null, adminUserId, adminCorporacao];
                 const [fallbackResult] = await db.query(fallbackSqlV2, fallbackValuesV2);
@@ -1519,7 +1351,6 @@ app.post('/api/admin/concursos', checkRh, async (req, res) => {
                 console.error(`[Admin] Erro no fallback V2 (provavelmente 'corporacao' ausente). Tentando V1... IP ${ipAddress}:`, fallbackErr);
                 
                 try {
-                    // Tenta sem 'valor' e sem 'corporacao'
                     const fallbackSqlV1 = `INSERT INTO concursos (titulo, descricao, vagas, status, data_abertura, data_encerramento, link_edital, autor_id, data_publicacao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`;
                     const fallbackValuesV1 = [titulo, descricao, numVagas, status, data_abertura, data_encerramento, link_edital || null, adminUserId];
                     const [oldestResult] = await db.query(fallbackSqlV1, fallbackValuesV1);
@@ -1540,9 +1371,6 @@ app.post('/api/admin/concursos', checkRh, async (req, res) => {
     }
 });
 
-
-
-// Rota para buscar UM concurso 
 app.get('/api/admin/concursos/:id', checkRh, async (req, res) => {
     const db = getDbConnection(req);
     const { id } = req.params;
@@ -1613,8 +1441,6 @@ app.get('/api/admin/concursos/:id', checkRh, async (req, res) => {
     }
 });
 
-
-// Rota para ATUALIZAR um concurso 
 app.put('/api/admin/concursos/:id', checkRh, async (req, res) => {
     const db = getDbConnection(req);
     const { id } = req.params;
@@ -1679,9 +1505,6 @@ app.put('/api/admin/concursos/:id', checkRh, async (req, res) => {
     }
 });
 
-
-
-// Rota para EXCLUIR um concurso 
 app.delete('/api/admin/concursos/:id', checkRh, async (req, res) => {
     const db = getDbConnection(req);
     const { id } = req.params;
@@ -1737,11 +1560,6 @@ app.delete('/api/admin/concursos/:id', checkRh, async (req, res) => {
     }
 });
 
-
-
-// --- [INÍCIO] ROTAS DO PAINEL STAFF (protegidas com checkStaff) ---
-
-// Rota para buscar usuários GLOBAIS (Policiais E Civis)
 app.post('/api/staff/search-users', checkStaff, async (req, res) => {
     const db = getDbConnection(req);
     const { searchQuery, searchType } = req.body;
@@ -1755,7 +1573,6 @@ app.post('/api/staff/search-users', checkStaff, async (req, res) => {
     let queryParams = [];
 
     try {
-        // --- 1. Query para Policiais (usuariospoliciais) ---
         if (searchType === 'Todos' || searchType === 'Policial') {
             let policeWhere = [];
             let policeParams = [];
@@ -1769,7 +1586,8 @@ app.post('/api/staff/search-users', checkStaff, async (req, res) => {
 
             const policeSelect = `
                 (SELECT 
-                    id, nome_completo, passaporte, status, corporacao, 'Policial' as tipo
+                    id, nome_completo, passaporte, status, corporacao, 'Policial' as tipo,
+                    discord_id, telefone_rp, gmail, patente, divisao, permissoes 
                 FROM usuariospoliciais
                 ${policeWhereString})
             `;
@@ -1777,7 +1595,6 @@ app.post('/api/staff/search-users', checkStaff, async (req, res) => {
             queryParams.push(...policeParams);
         }
 
-        // --- 2. Query para Civis (usuarios) ---
         if (searchType === 'Todos' || searchType === 'Civil') {
             let civilWhere = [];
             let civilParams = [];
@@ -1792,7 +1609,8 @@ app.post('/api/staff/search-users', checkStaff, async (req, res) => {
             const civilSelect = `
                 (SELECT 
                     id, nome_completo, id_passaporte as passaporte, 'Ativo' as status,
-                    NULL as corporacao, 'Civil' as tipo
+                    NULL as corporacao, 'Civil' as tipo,
+                    NULL as discord_id, telefone_rp, gmail, NULL as patente, NULL as divisao
                 FROM usuarios
                 ${civilWhereString})
             `;
@@ -1804,7 +1622,6 @@ app.post('/api/staff/search-users', checkStaff, async (req, res) => {
             return res.status(200).json({ users: [] }); 
         }
 
-        // --- 4. Constrói a Query Final ---
         let combinedSql = queryParts.join(' UNION ALL ');
         combinedSql += ' ORDER BY nome_completo ASC LIMIT 50'; 
 
@@ -1820,7 +1637,6 @@ app.post('/api/staff/search-users', checkStaff, async (req, res) => {
     }
 });
 
-// Rota para Gerar Token GLOBAL (para qualquer corporação)
 app.post('/api/staff/generate-global-token', checkStaff, async (req, res) => {
     const db = getDbConnection(req);
     const adminUser = req.user;
@@ -1856,8 +1672,6 @@ app.post('/api/staff/generate-global-token', checkStaff, async (req, res) => {
         res.status(500).json({ message: "Erro interno ao gerar token." });
     }
 });
-
-// --- [INÍCIO] ROTAS DE ESTRUTURA (DEPARTAMENTOS E HIERARQUIA) ---
 
 app.get('/api/staff/structure', checkRhOrStaffOrDev, async (req, res) => {
     const db = getDbConnection(req);
@@ -1921,11 +1735,10 @@ app.delete('/api/staff/corporacoes/:id', checkStaff, async (req, res) => {
     }
 });
 
-// ✅ NOVO ENDPOINT: ATUALIZAR PERMISSÕES DA CORPORAÇÃO
 app.put('/api/staff/corporacoes/:id/permissions', checkStaff, async (req, res) => {
     const db = getDbConnection(req);
-    const { id } = req.params; // ID da corporação
-    const { permissoes } = req.body; // Espera um objeto JSON stringificado
+    const { id } = req.params; 
+    const { permissoes } = req.body; 
     const adminUser = req.user;
     const ipAddress = req.ip;
 
@@ -1935,10 +1748,9 @@ app.put('/api/staff/corporacoes/:id/permissions', checkStaff, async (req, res) =
 
     let permissoesJson;
     try {
-        // Valida se o que recebemos é um JSON (stringificado) ou já um objeto
         if (typeof permissoes === 'string') {
             permissoesJson = permissoes;
-            JSON.parse(permissoesJson); // Tenta fazer o parse para validar
+            JSON.parse(permissoesJson); 
         } else if (typeof permissoes === 'object' && permissoes !== null) {
             permissoesJson = JSON.stringify(permissoes);
         } else {
@@ -1959,7 +1771,6 @@ app.put('/api/staff/corporacoes/:id/permissions', checkStaff, async (req, res) =
             return res.status(404).json({ message: "Corporação não encontrada." });
         }
 
-        // Loga a ação
         const logDetails = {
             targetCorpId: parseInt(id),
             newPermissions: permissoesJson,
@@ -2049,8 +1860,6 @@ app.delete('/api/staff/divisoes/:id', checkStaff, async (req, res) => {
     }
 });
 
-// --- [FIM] ROTAS DE ESTRUTURA ---
-
 app.put('/api/staff/portal-settings', checkStaff, uploadImagem.single('header_logo_file'), async (req, res) => {
      const db = getDbConnection(req);
      const { header_title, header_subtitle, footer_copyright, old_logo_url } = req.body;
@@ -2081,7 +1890,7 @@ app.put('/api/staff/portal-settings', checkStaff, uploadImagem.single('header_lo
                 if (fs.existsSync(oldLogoDiskPath)) {
                     fs.unlink(oldLogoDiskPath, (err) => {
                         if (err) console.error(`[Staff Settings] Falha ao deletar logo antigo: ${oldLogoDiskPath}`, err.message);
-                        else console.log(`[Staff Settings] Logo antigo deletado: ${oldLogoDiskPath}`);
+                        // else console.log(`[Staff Settings] Logo antigo deletado: ${oldLogoDiskPath}`); // REMOVIDO
                     });
                 } else {
                     console.warn(`[Staff Settings] Logo antigo não encontrado para deletar: ${oldLogoDiskPath}`);
@@ -2104,7 +1913,293 @@ app.put('/api/staff/portal-settings', checkStaff, uploadImagem.single('header_lo
      }
 });
 
-// --- [FIM] ROTAS DO PAINEL STAFF ---
+app.post('/api/staff/banner-images', checkStaff, uploadAnexos.array('banners', 10), async (req, res) => {
+    const db = getDbConnection(req);
+    const adminUser = req.user;
+    const ipAddress = req.ip;
+
+    const { existing_images } = req.body; 
+    const newFiles = req.files || []; 
+
+    let keptImages = [];
+    try {
+        if (existing_images) {
+            keptImages = JSON.parse(existing_images);
+            if (!Array.isArray(keptImages)) throw new Error("Formato inválido.");
+        }
+    } catch (e) {
+        return res.status(400).json({ message: "Formato de 'existing_images' inválido. Deve ser um array JSON." });
+    }
+
+    const newImagePaths = newFiles.map(file => `/uploads/${file.filename}`);
+    const finalBannerList = [...keptImages, ...newImagePaths];
+
+    if (finalBannerList.length > 10) {
+        newImagePaths.forEach(filePath => {
+            const diskPath = path.join(__dirname, filePath);
+            fs.unlink(diskPath, (err) => {
+                if (err) console.error(`[Staff Banners] Falha ao limpar arquivo extra: ${diskPath}`, err);
+            });
+        });
+        return res.status(400).json({ message: `Limite de 10 banners excedido. Você tentou salvar ${finalBannerList.length}.` });
+    }
+
+    const finalBannerListJson = JSON.stringify(finalBannerList);
+
+    try {
+        const [oldSettings] = await db.query("SELECT setting_value FROM portal_settings WHERE setting_key = 'banner_images'");
+        let oldBannerList = [];
+        if (oldSettings.length > 0 && oldSettings[0].setting_value) {
+            try { oldBannerList = JSON.parse(oldSettings[0].setting_value); } catch (e) {}
+        }
+
+        await db.query(
+            "INSERT INTO portal_settings (setting_key, setting_value) VALUES ('banner_images', ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+            [finalBannerListJson]
+        );
+
+        oldBannerList.forEach(oldImagePath => {
+            if (!finalBannerList.includes(oldImagePath) && oldImagePath.startsWith('/uploads/')) {
+                const diskPath = path.join(__dirname, oldImagePath);
+                fs.unlink(diskPath, (err) => {
+                    if (err) console.error(`[Staff Banners] Falha ao deletar banner antigo: ${diskPath}`, err);
+                    // else console.log(`[Staff Banners] Banner antigo deletado: ${diskPath}`); // REMOVIDO
+                });
+            }
+        });
+
+        const logDetails = {
+            action: 'Update Banners',
+            newCount: finalBannerList.length,
+            added: newImagePaths.length,
+            removed: oldBannerList.length - keptImages.length,
+            adminId: adminUser.id
+        };
+        await logAdminAction(adminUser.id, 'Update Portal Settings', logDetails, ipAddress);
+
+        res.status(200).json({ 
+            message: 'Banners atualizados com sucesso!', 
+            banner_images: finalBannerList 
+        });
+
+    } catch (err) {
+        console.error(`[Staff Banners] Erro ao salvar banners (IP: ${ipAddress}):`, err);
+        res.status(500).json({ message: "Erro interno ao salvar banners." });
+    }
+});
+
+
+// --- [INÍCIO] NOVAS ROTAS DE STAFF (GERENCIAMENTO DE USUÁRIOS) ---
+
+app.put('/api/staff/policial/:id', authenticateToken, checkStaff, async (req, res) => {
+    const { id } = req.params;
+    const { 
+        nome_completo, passaporte, discord_id, 
+        telefone_rp, gmail, patente, divisao, 
+        permissoes, // <-- NOVO CAMPO RECEBIDO
+        status // <-- NOVO CAMPO RECEBIDO
+    } = req.body;
+    
+    if (!nome_completo || !passaporte || !status) {
+        return res.status(400).json({ message: 'Nome, Passaporte e Status são obrigatórios.' });
+    }
+
+    // Garante que 'permissoes' seja uma string JSON válida para o DB
+    let permissoesJson;
+    try {
+        // O frontend envia um objeto, nós o stringificamos
+        permissoesJson = JSON.stringify(permissoes || {});
+    } catch (e) {
+        console.error("Erro ao stringificar permissões:", e);
+        return res.status(400).json({ message: 'Formato de permissões inválido.' });
+    }
+
+    try {
+        const [result] = await db.query(
+            `UPDATE usuariospoliciais SET 
+                nome_completo = ?, passaporte = ?, discord_id = ?, 
+                telefone_rp = ?, gmail = ?, patente = ?, divisao = ?,
+                permissoes = ?, status = ?
+             WHERE id = ?`,
+            [nome_completo, passaporte, discord_id, telefone_rp, gmail, patente, divisao, permissoesJson, status, id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Policial não encontrado.' });
+        }
+
+        await logAdminAction(
+            req.user.id, 
+            'Staff: Update User Data', 
+            `Editou dados, status e permissões do policial ID ${id}.`, 
+            req.ip
+        );
+
+        res.json({ message: 'Dados do policial atualizados com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao atualizar policial (Staff):', error);
+        res.status(500).json({ message: 'Erro interno ao atualizar policial.' });
+    }
+});
+
+// ROTA PARA STAFF EDITAR DADOS DE UM CIVIL
+app.put('/api/staff/civil/:id', authenticateToken, checkStaff, async (req, res) => {
+    const { id } = req.params;
+    const { nome_completo, passaporte, telefone_rp, gmail } = req.body;
+
+    if (!nome_completo || !passaporte) {
+        return res.status(400).json({ message: 'Nome completo e passaporte são obrigatórios.' });
+    }
+    
+    try {
+        const [result] = await db.query(
+            `UPDATE usuarios SET 
+                nome_completo = ?, id_passaporte = ?, telefone_rp = ?, gmail = ?
+             WHERE id = ?`,
+            [nome_completo, passaporte, telefone_rp, gmail, id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Civil não encontrado.' });
+        }
+
+        await logAdminAction(
+            req.user.id, 
+            'Staff: Update User Data', 
+            { targetUserId: id, targetType: 'Civil', changes: 'Dados editados via painel Staff' }, 
+            req.ip
+        );
+
+        res.json({ message: 'Dados do civil atualizados com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao atualizar civil (Staff):', error);
+        res.status(500).json({ message: 'Erro interno ao atualizar civil.' });
+    }
+});
+
+// ROTA PARA STAFF APLICAR AÇÕES (SUSPENDER, BANIR, REATIVAR)
+app.post('/api/staff/user/:tipo/:id/action', authenticateToken, checkStaff, async (req, res) => {
+    const { tipo, id } = req.params;
+    const { acao, motivo, duracaoHoras, banirIp } = req.body;
+    
+    // Usa a tabela correta baseada no tipo de usuário
+    const table = tipo.toLowerCase() === 'policial' ? 'usuariospoliciais' : 'usuarios';
+    if (table !== 'usuariospoliciais' && table !== 'usuarios') {
+        return res.status(400).json({ message: 'Tipo de usuário inválido.' });
+    }
+
+    let novoStatus = '';
+    let logMessage = '';
+
+    try {
+        // --- Lógica para POLICIAL (tem status) ---
+        if (table === 'usuariospoliciais') {
+            if (acao === 'suspender') {
+                novoStatus = 'Suspenso';
+                logMessage = `Suspendeu policial ID ${id} por ${duracaoHoras || 'N/D'}h. Motivo: ${motivo}`;
+            
+            } else if (acao === 'banir') {
+                novoStatus = 'Reprovado'; // Status de banimento/demissão
+                logMessage = `Baniu policial ID ${id}. Motivo: ${motivo}.`;
+            
+            } else if (acao === 'reativar') {
+                novoStatus = 'Aprovado'; // Status padrão de atividade
+                logMessage = `Reativou policial ID ${id}. Motivo: ${motivo}.`;
+            
+            } else {
+                return res.status(400).json({ message: 'Ação desconhecida para policial.' });
+            }
+
+            const [result] = await db.query(`UPDATE usuariospoliciais SET status = ? WHERE id = ?`, [novoStatus, id]);
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ message: 'Policial não encontrado.' });
+            }
+
+        // --- Lógica para CIVIL (não tem status, banir = deletar) ---
+        } else if (table === 'usuarios') {
+            if (acao === 'banir') {
+                logMessage = `Baniu (deletou) civil ID ${id}. Motivo: ${motivo}.`;
+                
+                const [result] = await db.query(`DELETE FROM usuarios WHERE id = ?`, [id]);
+                if (result.affectedRows === 0) {
+                    return res.status(404).json({ message: 'Civil não encontrado.' });
+                }
+
+            } else {
+                // Civis não podem ser 'suspensos' ou 'reativados' pois não têm status
+                return res.status(400).json({ message: `Ação '${acao}' não é suportada para civis.` });
+            }
+        }
+
+        // --- Lógica de BANIR IP (para ambos os tipos, se for 'banir') ---
+        if (acao === 'banir' && banirIp) {
+            logMessage += ' [Banimento por IP solicitado]';
+            
+            // Tenta pegar o IP dos logs (mais confiável para policiais)
+            const [ipRows] = await db.query(
+                `SELECT ip_address FROM logs_auditoria WHERE usuario_id = ? ORDER BY data_log DESC LIMIT 1`, 
+                [id]
+            );
+            
+            if (ipRows.length > 0 && ipRows[0].ip_address) {
+                const userIp = ipRows[0].ip_address;
+                
+                // Insere o IP na tabela de banidos (IGNORA se já existir)
+                await db.query(
+                    'INSERT IGNORE INTO banned_ips (ip, motivo, banned_by_id) VALUES (?, ?, ?)', 
+                    [userIp, `Banido com ${tipo} ID ${id} (${motivo})`, req.user.id]
+                );
+                logMessage += ` (IP: ${userIp} banido)`;
+            } else {
+                logMessage += ' (IP do usuário não encontrado nos logs para banir)';
+            }
+        }
+
+        // Loga a ação do staff
+        await logAdminAction(req.user.id, 'Staff: Apply Action', logMessage, req.ip);
+
+        res.json({ message: 'Ação aplicada com sucesso!' });
+    } catch (error) {
+        console.error(`Erro ao aplicar ação ${acao} (Staff):`, error);
+        res.status(500).json({ message: 'Erro interno ao aplicar ação.' });
+    }
+});
+
+app.get('/api/staff/banned-ips', authenticateToken, checkStaff, async (req, res) => {
+    try {
+        const [rows] = await db.query("SELECT * FROM banned_ips ORDER BY data_banimento DESC");
+        res.json(rows);
+    } catch (error) {
+        console.error('Erro ao buscar IPs banidos:', error);
+        res.status(500).json({ message: 'Erro interno ao buscar IPs.' });
+    }
+});
+
+// ROTA PARA PERDOAR (DELETAR) UM BAN DE IP
+app.delete('/api/staff/banned-ips/:id', authenticateToken, checkStaff, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [result] = await db.query("DELETE FROM banned_ips WHERE id = ?", [id]);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Registro de banimento não encontrado.' });
+        }
+
+        await logAdminAction(
+            req.user.id, 
+            'Staff: Unban IP', 
+            `Perdoou (deletou) o registro de ban de IP ID ${id}.`, 
+            req.ip
+        );
+        res.json({ message: 'IP perdoado com sucesso!' });
+
+    } catch (error) {
+        console.error('Erro ao perdoar IP:', error);
+        res.status(500).json({ message: 'Erro interno ao perdoar IP.' });
+    }
+});
+
+// --- [FIM] NOVAS ROTAS DE STAFF ---
 
 // --- ROTAS POLICIAIS GERAIS (protegidas com checkIsPoliceAuthenticated) ---
 app.get('/api/policia/dashboard-stats', checkIsPoliceAuthenticated, async (req, res) => {
@@ -2148,12 +2243,12 @@ app.get('/api/policia/policiais', checkIsPoliceAuthenticated, async (req, res) =
     const user = req.user;
     const userCorporacao = user.corporacao ? user.corporacao.trim() : null;
 
-    console.log(`\n--- Acesso a /api/policia/policiais por User ID: ${user.id} (${user.nome_completo}) ---`);
-    console.log(`Corporação do utilizador (após trim): '${userCorporacao}'`);
-    console.log(`Permissões: ${JSON.stringify(user.permissoes)}`);
+    // console.log(`\n--- Acesso a /api/policia/policiais por User ID: ${user.id} (${user.nome_completo}) ---`); // REMOVIDO
+    // console.log(`Corporação do utilizador (após trim): '${userCorporacao}'`); // REMOVIDO
+    // console.log(`Permissões: ${JSON.stringify(user.permissoes)}`); // REMOVIDO
 
     const isRhGeral = user.permissoes?.is_rh === true && !userCorporacao;
-    console.log(`É considerado RH Geral? ${isRhGeral}`);
+    // console.log(`É considerado RH Geral? ${isRhGeral}`); // REMOVIDO
 
     let sql = `SELECT id, nome_completo, passaporte, patente, corporacao, divisao, status FROM usuariospoliciais WHERE status = 'Aprovado' `;
     const params = [];
@@ -2165,16 +2260,16 @@ app.get('/api/policia/policiais', checkIsPoliceAuthenticated, async (req, res) =
         }
         sql += ' AND TRIM(corporacao) = ? ';
         params.push(userCorporacao);
-        console.log(`FILTRO APLICADO para corporação: '${userCorporacao}'`);
+        // console.log(`FILTRO APLICADO para corporação: '${userCorporacao}'`); // REMOVIDO
     } else {
-        console.log(`SEM FILTRO DE CORPORAÇÃO (Acesso de RH Geral).`);
+        // console.log(`SEM FILTRO DE CORPORAÇÃO (Acesso de RH Geral).`); // REMOVIDO
     }
 
     sql += ' ORDER BY corporacao, nome_completo ASC';
 
     try {
         const [results] = await db.query(sql, params);
-        console.log(`Query executada. ${results.length} resultados encontrados.`);
+        // console.log(`Query executada. ${results.length} resultados encontrados.`); // REMOVIDO
         res.status(200).json(results);
     } catch (err) {
         console.error("Erro ao buscar lista de policiais:", err);
@@ -2202,8 +2297,6 @@ app.get('/api/policia/perfil/:id', checkIsPoliceAuthenticated, async (req, res) 
         const isSameCorp = userCorporacao === perfilCorporacao;
 
         if (isRhGeral || isSameCorp) {
-            // As permissões do req.user já estão combinadas (do middleware)
-            // Mas as do perfilAlvo (se não for o próprio user) precisam ser combinadas
             if (perfilAlvo.id !== userRequesting.id) {
                 let userPerms = {};
                 let corpPerms = {};
@@ -2220,7 +2313,7 @@ app.get('/api/policia/perfil/:id', checkIsPoliceAuthenticated, async (req, res) 
                 }
                 perfilAlvo.permissoes = { ...corpPerms, ...userPerms };
             } else {
-                 perfilAlvo.permissoes = userRequesting.permissoes; // Se é o próprio user, usa as permissões já combinadas
+                 perfilAlvo.permissoes = userRequesting.permissoes; 
             }
             
             res.status(200).json(perfilAlvo);
@@ -2312,15 +2405,13 @@ app.get('/api/anuncios', requireAuth(), async (req, res) => {
             LEFT JOIN usuariospoliciais u ON a.autor_id = u.id `;
         const params = [];
 
-        // Se NÃO for RH, filtra
         if (!isRh) {
-            sql += ' WHERE a.corporacao IS NULL '; // Onde é Geral
+            sql += ' WHERE a.corporacao IS NULL '; 
             if (userCorp) {
-                sql += ' OR a.corporacao = ? '; // Ou da corporação dele
+                sql += ' OR a.corporacao = ? '; 
                 params.push(userCorp);
             }
         }
-        // Se FOR RH, não adiciona WHERE (vê tudo)
 
         sql += ' ORDER BY a.data_publicacao DESC LIMIT 10 ';
         const [results] = await db.query(sql, params);
@@ -2385,7 +2476,7 @@ app.post('/api/policia/relatorios', checkIsPoliceAuthenticated, async (req, res)
         if (q.split('?').length - 1 !== v.length) { console.error(`[Relatório ERRO FATAL] Disparidade SQL: ${q.split('?').length - 1} placeholders vs ${v.length} valores.`); return res.status(500).json({ message: "Erro interno crítico de configuração." }); }
 
         const [result] = await db.query(q, v);
-        console.log(`[Relatório] ID ${result.insertId} criado por ${uid}. Coords: (${coordX}, ${coordY})`);
+        // console.log(`[Relatório] ID ${result.insertId} criado por ${uid}. Coords: (${coordX}, ${coordY})`); // REMOVIDO
         res.status(201).json({ message: "Relatório criado com sucesso!", id_relatorio_criado: result.insertId });
 
     } catch (err) {
@@ -2402,7 +2493,7 @@ app.get('/api/crimes/heatmap-data', checkIsPoliceAuthenticated, async (req, res)
         return res.status(401).json({ message: "Acesso não autorizado." });
     }
 
-    console.log(`[Heatmap] GET /api/crimes/heatmap-data acessado por ${req.user.type} ID ${req.user.id}`);
+    // console.log(`[Heatmap] GET /api/crimes/heatmap-data acessado por ${req.user.type} ID ${req.user.id}`); // REMOVIDO
     const statusOcorrencias = ['Resolvido', 'Em Investigação', 'Aguardando Análise'];
     const statusRelatorios = ['Em Aberto', 'Concluído', 'Em Análise'];
 
@@ -2421,7 +2512,7 @@ app.get('/api/crimes/heatmap-data', checkIsPoliceAuthenticated, async (req, res)
             tipo: row.tipo || 'Indefinido'
         }));
 
-        console.log(`[Heatmap] Enviando ${heatmapData.length} pontos de dados.`);
+        // console.log(`[Heatmap] Enviando ${heatmapData.length} pontos de dados.`); // REMOVIDO
         res.status(200).json(heatmapData);
 
     } catch (err) {
@@ -2431,7 +2522,6 @@ app.get('/api/crimes/heatmap-data', checkIsPoliceAuthenticated, async (req, res)
 
 });
 
-// --- ROTA PARA REPORTAR BUG ---
 app.post('/api/policia/report-bug', checkIsPoliceAuthenticated, async (req, res) => {
     const { description } = req.body;
     const user = req.user;
@@ -2456,8 +2546,6 @@ app.post('/api/policia/report-bug', checkIsPoliceAuthenticated, async (req, res)
     }
 });
 
-
-// --- ROTAS DE BOLETINS (protegidas por tipo específico) ---
 app.post('/api/boletim/registrar', checkIsCivilAuthenticated, uploadAnexos.array('anexos', 5), async (req, res) => {
     const db = getDbConnection(req);
     const uid = req.user.id;
@@ -2499,7 +2587,6 @@ app.get('/api/policia/boletins/:id', checkIsPoliceAuthenticated, async (req, res
     } catch (err) { console.error(`Erro ao buscar detalhes do BO ${id}:`, err); res.status(500).json({ message: "Erro interno ao buscar detalhes do boletim." }); }
 });
 
-// ✅ ROTA ATUALIZAR BO (Usa checkCivilPolice - que agora checa permissão 'podeEditarBO')
 app.put('/api/policia/boletins/:id', checkCivilPolice, uploadAnexos.array('anexos', 5), async (req, res) => {
     const db = getDbConnection(req);
     const { id } = req.params;
@@ -2527,12 +2614,10 @@ app.put('/api/policia/boletins/:id', checkCivilPolice, uploadAnexos.array('anexo
         const [bo] = await db.query("SELECT policial_responsavel_id FROM ocorrencias WHERE id = ?", [id]);
         if (bo.length === 0) return res.status(404).json({ message: "Boletim não encontrado." });
         
-        // Acesso permitido apenas se for o policial responsável
         if (bo[0].policial_responsavel_id !== null && bo[0].policial_responsavel_id !== policialId) {
             return res.status(403).json({ message: "Ação não permitida. Você não é o policial responsável por este caso." });
         }
         
-        // (Lógica inalterada, pois 'checkCivilPolice' já filtrou a permissão de edição)
         const setResponsavel = (bo[0].policial_responsavel_id === null && status === 'Em Investigação') ? policialId : bo[0].policial_responsavel_id;
         const setDataAssumido = (bo[0].policial_responsavel_id === null && status === 'Em Investigação') ? 'NOW()' : 'data_assumido';
 
@@ -2558,7 +2643,6 @@ app.put('/api/policia/boletins/:id', checkCivilPolice, uploadAnexos.array('anexo
     }
 });
 
-// ✅ ROTA ASSUMIR BO (Usa o novo middleware checkCanAssumeBo)
 app.put('/api/policia/boletins/:id/assumir', checkCanAssumeBo, async (req, res) => {
     const db = getDbConnection(req);
     const { id } = req.params;
@@ -2585,27 +2669,19 @@ app.put('/api/policia/boletins/:id/assumir', checkCanAssumeBo, async (req, res) 
     } catch (err) { console.error(`Erro ao assumir BO ${id} pelo policial ${policialId}:`, err); res.status(500).json({ message: "Erro interno do servidor ao tentar assumir o caso." }); }
 });
 
-
-// =================================================================
-// --- TAREFA AGENDADA (CRON) ---
-// =================================================================
 cron.schedule('1 0 * * *', async () => {
     const db = getDbConnection(null);
-    console.log('[CRON] Executando limpeza de tokens de registro expirados...');
+    // console.log('[CRON] Executando limpeza de tokens de registro expirados...'); // REMOVIDO
     try {
         const [result] = await db.query(
             "UPDATE registration_tokens SET is_active = FALSE, status_detail = 'Expirado Automaticamente' WHERE expires_at < NOW() AND is_active = TRUE"
         );
-        console.log(`[CRON] Tokens expirados desativados: ${result.affectedRows}`);
+        // console.log(`[CRON] Tokens expirados desativados: ${result.affectedRows}`); // REMOVIDO
     } catch (err) {
         console.error('[CRON] Erro ao desativar tokens expirados:', err);
     }
 });
 
-
-// =================================================================
-// --- TRATAMENTO DE ERROS GERAL (ÚLTIMO MIDDLEWARE) ---
-// =================================================================
 app.use((err, req, res, next) => {
     console.error(`[ERRO NÃO TRATADO] Rota: ${req.method} ${req.path}`, err.stack);
 
@@ -2622,15 +2698,9 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: 'Ocorreu um erro interno inesperado no servidor.' });
 });
 
-// =================================================================
-
-// --- ROTA PARA REPORT-BUG --- (Movido para cima)
-
-// =================================================================
-
 app.get('/api/policia/relatorios/tendencias', checkIsPoliceAuthenticated, async (req, res) => {
     const db = getDbConnection(req);
-    console.log(`[Tendencias] GET /api/policia/relatorios/tendencias acessado por User ID: ${req.user.id}`);
+    // console.log(`[Tendencias] GET /api/policia/relatorios/tendencias acessado por User ID: ${req.user.id}`); // REMOVIDO
     try {
         const sql = `
             SELECT
@@ -2654,7 +2724,7 @@ app.get('/api/policia/relatorios/tendencias', checkIsPoliceAuthenticated, async 
             return acc;
         }, {});
 
-        console.log(`[Tendencias] Enviando ${Object.keys(tendenciasPorTipo).length} tipos de ocorrências.`);
+        // console.log(`[Tendencias] Enviando ${Object.keys(tendenciasPorTipo).length} tipos de ocorrências.`); // REMOVIDO
         res.status(200).json(tendenciasPorTipo);
 
     } catch (err) {
@@ -2662,10 +2732,6 @@ app.get('/api/policia/relatorios/tendencias', checkIsPoliceAuthenticated, async 
         res.status(500).json({ message: "Erro interno ao processar dados de tendências." });
     }
 });
-
-// =================================================================
-// --- INICIAR O CHARGELOG ---
-// =================================================================
 
 app.get('/api/changelog', async (req, res) => {
     const db = getDbConnection(req);
@@ -2683,7 +2749,6 @@ app.get('/api/changelog', async (req, res) => {
     }
 });
 
-// POST: Adicionar nova entrada ao Changelog (Apenas RH)
 app.post('/api/admin/changelog', checkRh, async (req, res) => {
     const db = getDbConnection(req);
     const { title, content, version } = req.body;
@@ -2717,10 +2782,6 @@ app.post('/api/admin/changelog', checkRh, async (req, res) => {
     }
 });
 
-
-// =================================================================
-// --- INICIAR O SERVIDOR ---
-// =================================================================
 app.listen(PORT, () => {
     console.log(`****************************************************`);
     console.log(`* Servidor SGP-RP rodando em http://localhost:${PORT} *`);

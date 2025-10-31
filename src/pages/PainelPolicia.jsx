@@ -15,16 +15,9 @@ import {
 
 // Importa os CSS necessários
 import '../components/PoliceDashboard.css';
-import '../components/AdminPage.css';
-import '../components/ListaPoliciaisPage.css';
-import '../components/PoliceProfilePage.css';
-import '../components/Timeline.css';
 import '../components/BoletimDetailPage.css'; // (Import que você adicionou)
 import '../components/ConsultaBoletins.css';
 import '../components/RelatoriosPage.css';
-import '../components/Modal.css';
-
-const API_URL = 'http://localhost:5173';
 
 // --- ÍCONES ANIMADOS ---
 const AnimatedCheckmark = () => (
@@ -196,7 +189,7 @@ const ReportBugModal = ({ isOpen, onClose, token, logout }) => {
         setProcessing(true); setStatusMessage({ type: 'loading', text: 'Enviando relatório...' });
 
         try {
-            const response = await fetch(`${API_URL}/api/policia/report-bug`, {
+            const response = await fetch(`/api/policia/report-bug`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ description })
             });
@@ -348,8 +341,8 @@ const DashboardView = ({ user, token, logout, setView }) => {
             const headers = { 'Authorization': `Bearer ${token}` };
             try {
                 const [statsResponse, anunciosResponse] = await Promise.all([
-                    fetch(`${API_URL}/api/policia/dashboard-stats`, { headers }),
-                    fetch(`${API_URL}/api/anuncios`, { headers })
+                    fetch(`/api/policia/dashboard-stats`, { headers }),
+                    fetch(`/api/anuncios`, { headers })
                 ]);
                 if (statsResponse.status === 401 || statsResponse.status === 403 || anunciosResponse.status === 401 || anunciosResponse.status === 403) { if (logout) logout(); throw new Error("Sessão inválida"); }
                 if (!statsResponse.ok) throw new Error(`Estatísticas: ${statsResponse.statusText}`);
@@ -423,7 +416,7 @@ const ConsultaBoletinsView = ({ user, token, logout, setView }) => {
             const headers = { 'Authorization': `Bearer ${token}` };
 
              try {
-                 const response = await fetch(`${API_URL}/api/policia/boletins`, { headers }); 
+                 const response = await fetch(`/api/policia/boletins`, { headers }); 
                  if (response.status === 401 || response.status === 403) { if (logout) logout(); throw new Error('Sessão expirou ou é inválida. Faça login novamente.'); }
                  if (!response.ok) { const errData = await response.json().catch(() => ({message: `Erro ${response.status}`})); throw new Error(errData.message || 'Falha ao carregar os boletins.'); }
                  const data = await response.json();
@@ -560,7 +553,7 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
         if (!token) { setError('Erro: Token não encontrado.'); setLoading(false); return; }
         const headers = { 'Authorization': `Bearer ${token}` };
         try {
-            const response = await fetch(`${API_URL}/api/policia/boletins/${boletimId}`, { headers });
+            const response = await fetch(`/api/policia/boletins/${boletimId}`, { headers });
             if (response.status === 401 || response.status === 403) { if (logout) logout(); throw new Error('Sessão expirou.'); }
             if (!response.ok) { let errorMsg = `Erro ${response.status}.`; try { const d = await response.json(); errorMsg = d.message || errorMsg; } catch (e) {} throw new Error(errorMsg); }
             const data = await response.json();
@@ -602,7 +595,7 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
 
         const toastId = toast.loading("Salvando alterações...");
         try {
-            const response = await fetch(`${API_URL}/api/policia/boletins/${boletimId}`, {
+            const response = await fetch(`/api/policia/boletins/${boletimId}`, {
                 method: 'PUT', headers: headers, body: formDataToSend,
             });
             if (response.status === 401 || response.status === 403) {
@@ -633,7 +626,7 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
         const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
         const toastId = toast.loading("Assumindo caso...");
         try {
-            const response = await fetch(`${API_URL}/api/policia/boletins/${boletimId}/assumir`, {
+            const response = await fetch(`/api/policia/boletins/${boletimId}/assumir`, {
                 method: 'PUT', headers: headers,
             });
             if (response.status === 401 || response.status === 403) {
@@ -833,8 +826,8 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
                     <div className="galeria-imagens">
                         {boletim.anexos_imagens?.map(imagem => (
                             <div key={imagem} className="imagem-container">
-                                <a href={imagem.startsWith('http') ? imagem : `${API_URL}${imagem}`} target="_blank" rel="noopener noreferrer" title="Ver imagem ampliada">
-                                    <img src={imagem.startsWith('http') ? imagem : `${API_URL}${imagem}`} alt={`Anexo ${imagem}`} />
+                                <a href={imagem.startsWith('http') ? imagem : imagem} target="_blank" rel="noopener noreferrer" title="Ver imagem ampliada">
+                                    <img src={imagem.startsWith('http') ? imagem : imagem} alt={`Anexo ${imagem}`} />
                                 </a>
                                 {podeEditarCampos && (
                                     <button type="button" className="btn-remover-img" onClick={() => removerImagemExistente(imagem)} title="Remover Imagem (ao salvar)">
@@ -893,7 +886,7 @@ const ListaPoliciaisView = ({ user, token, logout, setView }) => {
             const headers = { 'Authorization': `Bearer ${token}` }; 
 
             try {
-                const response = await fetch(`${API_URL}/api/policia/policiais`, { headers }); 
+                const response = await fetch(`/api/policia/policiais`, { headers }); 
                  if (response.status === 401 || response.status === 403) { if (logout) logout(); throw new Error('Sessão expirou ou é inválida. Faça login novamente.'); }
                 if (!response.ok) { const errData = await response.json().catch(() => ({ message: `Erro ${response.status}` })); throw new Error(errData.message || 'Falha ao carregar a lista de policiais.'); }
                 const data = await response.json();
@@ -979,8 +972,8 @@ const ProfileView = ({ user, token, logout, setView, navProps }) => {
 
         try {
             const [perfilResponse, historicoResponse] = await Promise.all([
-                fetch(`${API_URL}/api/policia/perfil/${profileId}`, { headers }),
-                fetch(`${API_URL}/api/policia/perfil/${profileId}/historico`, { headers })
+                fetch(`/api/policia/perfil/${profileId}`, { headers }),
+                fetch(`/api/policia/perfil/${profileId}/historico`, { headers })
             ]);
 
             if (perfilResponse.status === 401 || perfilResponse.status === 403 || historicoResponse.status === 401 || historicoResponse.status === 403 ) { if (logout) logout(); throw new Error('Sessão inválida ou expirada. Faça login novamente.'); }
@@ -1010,7 +1003,7 @@ const ProfileView = ({ user, token, logout, setView, navProps }) => {
         setLoading(true); setError(null);
         const toastId = toast.loading("Salvando perfil...");
         try {
-            const response = await fetch(`${API_URL}/api/policia/perfil/self`, {
+            const response = await fetch(`/api/policia/perfil/self`, {
                 method: 'PUT', headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             });
@@ -1034,7 +1027,7 @@ const ProfileView = ({ user, token, logout, setView, navProps }) => {
     if (error && !policial) { return <div className="page-container" style={{ padding: '20px' }}><h1>Erro</h1><p className="error-message">{error}</p></div>; }
     if (!policial) { return <div className="page-container" style={{ padding: '20px' }}><h1>Ops!</h1><p>Policial não encontrado.</p></div>; }
 
-    const avatarUrl = policial.foto_url ? (policial.foto_url.startsWith('http') ? policial.foto_url : `${API_URL}${policial.foto_url}`) : null;
+    const avatarUrl = policial.foto_url ? (policial.foto_url.startsWith('http') ? policial.foto_url : policial.foto_url) : null;
     const canEdit = user.id === policial.id;
     const handleAvatarClick = () => { if (avatarUrl) setIsPhotoModalOpen(true); };
 
@@ -1145,7 +1138,7 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
         setLoadingStats(true); setStatsError(null);
         if (!token) { setStatsError('Erro de autenticação.'); setLoadingStats(false); return; }
         try {
-            const response = await fetch(`${API_URL}/api/policia/relatorios/estatisticas`, {
+            const response = await fetch(`/api/policia/relatorios/estatisticas`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.status === 401 || response.status === 403) { if(logout) logout(); throw new Error('Sessão inválida.'); }
@@ -1159,7 +1152,7 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
         if (view !== 'resumo' || !token) return;
         setLoadingTendencias(true);
         try {
-            const response = await fetch(`${API_URL}/api/policia/relatorios/tendencias`, {
+            const response = await fetch(`/api/policia/relatorios/tendencias`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) {
@@ -1237,7 +1230,7 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
         const toastId = toast.loading("Enviando relatório...");
 
         try {
-            const response = await fetch(`${API_URL}/api/policia/relatorios`, {
+            const response = await fetch(`/api/policia/relatorios`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
                 body: JSON.stringify(dataToSend)
             });

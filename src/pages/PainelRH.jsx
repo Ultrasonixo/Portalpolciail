@@ -4,9 +4,6 @@ import { toast } from 'react-toastify';
 import LogDetails from '../components/LogDetails.jsx'; // LogsView depende disso
 import { Link } from 'react-router-dom'; // Necessário para links dentro dos modais
 
-// --- [CORREÇÃO] Define a URL base da sua API ---
-const API_URL = 'http://localhost:5173';
-
 // --- ÍCONES ANIMADOS (Necessários para os modais) ---
 const AnimatedCheckmark = () => (
     <svg className="toast-icon-svg checkmark-svg" viewBox="0 0 52 52">
@@ -120,7 +117,7 @@ const LogsView = ({ user, token, logout, navProps }) => {
             date: currentFilters.date
         });
         try {
-            const response = await fetch(`${API_URL}/api/admin/logs?${params.toString()}`, {
+            const response = await fetch(`/api/admin/logs?${params.toString()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) {
@@ -173,7 +170,7 @@ const LogsView = ({ user, token, logout, navProps }) => {
             <div className="log-filters">
                 <input type="text" name="text" placeholder="Buscar por texto, nome, IP..." value={filters.text} onChange={handleFilterChange} disabled={loading} />
                 <select name="action" value={filters.action} onChange={handleFilterChange} disabled={loading}>
-                    {uniqueActions.map(act => ( <option key={act.key} value={act.key}>{act.translated}</option> ))}
+                    {uniqueActions.map(act => ( <option key={act.key} value={act.key}>{act.translated}</option>))}
                 </select>
                 <input type="date" name="date" value={filters.date} onChange={handleFilterChange} disabled={loading} />
                 <button onClick={clearFilters} className="clear-filters-btn" disabled={loading}>Limpar Filtros</button>
@@ -362,7 +359,7 @@ const GerenciarPolicialModal = ({ isOpen, onClose, token, logout, user, structur
         if (searchTerm.length < 2) { toast.info("Digite pelo menos 2 caracteres."); setSearchResults([]); return; }
         setLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/admin/search-policiais?query=${searchTerm}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const response = await fetch(`/api/admin/search-policiais?query=${searchTerm}`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (response.status === 401 || response.status === 403) { if(logout) logout(); throw new Error('Sessão inválida.'); }
             if (!response.ok) throw new Error('Falha ao buscar.');
             const data = await response.json();
@@ -379,7 +376,7 @@ const GerenciarPolicialModal = ({ isOpen, onClose, token, logout, user, structur
         const toastId = toast.loading("Salvando alterações...");
 
         try {
-            const response = await fetch(`${API_URL}/api/admin/update-policial/${selectedUser.id}`, {
+            const response = await fetch(`/api/admin/update-policial/${selectedUser.id}`, {
                 method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
@@ -486,7 +483,7 @@ const RecruitListModal = ({ isOpen, onClose, onApproveClick, onRejectClick, toke
         }
         const headers = { 'Authorization': `Bearer ${token}` };
         try {
-            const response = await fetch(`${API_URL}/api/admin/recrutas`, { headers }); 
+            const response = await fetch(`/api/admin/recrutas`, { headers }); 
             if (response.status === 401 || response.status === 403) {
                 if (logout) logout();
                 throw new Error('Sessão inválida. Faça login novamente.');
@@ -616,7 +613,7 @@ const AnuncioModal = ({ isOpen, onClose, token, logout, user, corporacoes }) => 
 
         try {
             const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-            const response = await fetch(`${API_URL}/api/admin/anuncios`, { 
+            const response = await fetch(`/api/admin/anuncios`, { 
                 method: 'POST', headers: headers,
                 body: JSON.stringify({
                     titulo: titulo,
@@ -718,7 +715,7 @@ const DemitirModal = ({ isOpen, onClose, token, logout, user }) => {
 
             const fetchPoliciais = async () => {
                 try {
-                    const response = await fetch(`${API_URL}/api/admin/lista-oficiais`, { headers }); 
+                    const response = await fetch(`/api/admin/lista-oficiais`, { headers }); 
                     if (response.status === 401 || response.status === 403) {
                          if (logout) logout(); throw new Error('Sessão inválida.');
                     }
@@ -758,7 +755,7 @@ const DemitirModal = ({ isOpen, onClose, token, logout, user }) => {
         setStatusMessage({ type: 'loading', text: 'Processando demissão...' });
 
         try {
-            const response = await fetch(`${API_URL}/api/admin/demitir/${selectedPolicialId}`, {
+            const response = await fetch(`/api/admin/demitir/${selectedPolicialId}`, {
                 method: 'PUT', 
                 headers: headers 
             });
@@ -886,7 +883,7 @@ const GenerateTokenModal = ({ isOpen, onClose, token, logout, user, corporacoes 
         const toastId = toast.loading("Gerando token...");
 
         try {
-            const response = await fetch(`${API_URL}/api/admin/generate-token`, { 
+            const response = await fetch(`/api/admin/generate-token`, { 
                 method: 'POST', headers: headers,
                 body: JSON.stringify({ 
                     max_uses: parseInt(maxUses, 10), 
@@ -1027,7 +1024,7 @@ const PromoverRebaixarModal = ({ isOpen, onClose, token, logout, user, structure
         if (searchTerm.length < 2) { toast.info("Digite pelo menos 2 caracteres."); setSearchResults([]); return; }
         setLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/admin/search-policiais?query=${searchTerm}`, { headers: { 'Authorization': `Bearer ${token}` } }); 
+            const response = await fetch(`/api/admin/search-policiais?query=${searchTerm}`, { headers: { 'Authorization': `Bearer ${token}` } }); 
             if (response.status === 401 || response.status === 403) { if(logout) logout(); throw new Error('Sessão inválida.'); }
             if (!response.ok) throw new Error('Falha ao buscar.');
             // Filtra os resultados para mostrar apenas policiais da mesma corporação do RH logado
@@ -1053,7 +1050,7 @@ const PromoverRebaixarModal = ({ isOpen, onClose, token, logout, user, structure
         };
 
         try {
-            const response = await fetch(`${API_URL}/api/admin/gerenciar-policial`, { 
+            const response = await fetch(`/api/admin/gerenciar-policial`, { 
                 method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify(bodyData)
             });
@@ -1184,7 +1181,7 @@ const ConcursoModal = ({ isOpen, onClose, token, logout, user }) => {
         const toastId = toast.loading("Publicando concurso...");
 
         try {
-            const response = await fetch(`${API_URL}/api/admin/concursos`, {
+            const response = await fetch(`/api/admin/concursos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 // Envia a corporação do RH junto com os dados
@@ -1259,7 +1256,7 @@ const EditConcursoModal = ({ isOpen, onClose, concursoId, token, logout, user })
             toast.error('Erro: Token não encontrado.', { icon: <AnimatedXMark /> }); setLoadingData(false); return;
         }
         try {
-            const response = await fetch(`${API_URL}/api/admin/concursos/${concursoId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const response = await fetch(`/api/admin/concursos/${concursoId}`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (response.status === 401 || response.status === 403) { if(logout) logout(); throw new Error('Sessão inválida.'); }
             if (!response.ok) { const d=await response.json().catch(()=>{}); throw new Error(d?.message||`Erro ${response.status}`); }
             const data = await response.json();
@@ -1304,7 +1301,7 @@ const EditConcursoModal = ({ isOpen, onClose, concursoId, token, logout, user })
 
         const toastId = toast.loading("Salvando alterações...");
         try {
-            const response = await fetch(`${API_URL}/api/admin/concursos/${concursoId}`, {
+            const response = await fetch(`/api/admin/concursos/${concursoId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 // Garante que a corporação seja enviada (embora não deva mudar)
                 body: JSON.stringify({...formData, corporacao: formData.corporacao || corpoUsuario}) 
@@ -1366,7 +1363,7 @@ const GerenciarConcursosModal = ({ isOpen, onClose, onEditClick, onCreateClick, 
     const fetchConcursos = useCallback(async () => {
         setLoading(true); setError(null);
         try {
-            const response = await fetch(`${API_URL}/api/concursos`); 
+            const response = await fetch(`/api/concursos`); 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData.message || 'Falha ao carregar concursos.');
@@ -1403,7 +1400,7 @@ const GerenciarConcursosModal = ({ isOpen, onClose, onEditClick, onCreateClick, 
         setError(null);
         const toastId = toast.loading("Excluindo...");
         try {
-            const response = await fetch(`${API_URL}/api/admin/concursos/${concursoId}`, {
+            const response = await fetch(`/api/admin/concursos/${concursoId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -1550,7 +1547,7 @@ const PainelRH = ({ user, token, logout, currentView, setView, navProps }) => {
         if (!token) { toast.error("Token não encontrado.", { icon: <AnimatedXMark /> }); return; }
         const toastId = toast.loading("Aprovando recruta...");
         try {
-            const response = await fetch(`${API_URL}/api/admin/recrutas/${id}`, {
+            const response = await fetch(`/api/admin/recrutas/${id}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ novoStatus: 'Aprovado', divisao: divisao, patente: patente }),
             });
@@ -1571,7 +1568,7 @@ const PainelRH = ({ user, token, logout, currentView, setView, navProps }) => {
         if (!token) { toast.error("Token não encontrado.", { icon: <AnimatedXMark /> }); return; }
         const toastId = toast.loading("Reprovando recruta...");
         try {
-            const response = await fetch(`${API_URL}/api/admin/recrutas/${id}`, {
+            const response = await fetch(`/api/admin/recrutas/${id}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ novoStatus: 'Reprovado' }),
             });
@@ -1598,7 +1595,7 @@ const PainelRH = ({ user, token, logout, currentView, setView, navProps }) => {
         if (!token) { setLoadingStructure(false); return; }
         try {
             // Reutiliza a API do Staff para buscar a estrutura
-            const response = await fetch(`${API_URL}/api/staff/structure`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const response = await fetch(`/api/staff/structure`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (!response.ok) throw new Error('Falha ao carregar estrutura.');
             const data = await response.json();
             setStructureData(data);

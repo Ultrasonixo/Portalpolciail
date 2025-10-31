@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
-// Define a URL base da sua API (do server.js)
-const API_URL = 'http://localhost:5173';
-
 function Header() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
@@ -22,7 +19,7 @@ function Header() {
         const fetchPortalSettings = async () => {
             try {
                 // Rota pública, não precisa de token
-                const response = await fetch(`${API_URL}/api/public/portal-settings`);
+                const response = await fetch('/api/public/portal-settings');
                 if (!response.ok) {
                     throw new Error('Falha ao buscar configurações do portal.');
                 }
@@ -61,7 +58,7 @@ function Header() {
             <Link to="/" className="flex items-center gap-3 text-gray-800 hover:text-blue-600" onClick={closeMobileMenu}>
                 {/* --- [ATUALIZADO] Logo Dinâmico --- */}
                 <img 
-                    src={settings.header_logo_url.startsWith('http') ? settings.header_logo_url : `${API_URL}${settings.header_logo_url}`} 
+                    src={settings.header_logo_url.startsWith('http') ? settings.header_logo_url : settings.header_logo_url} 
                     alt="Brasão da Polícia" 
                     className="h-10 w-auto" 
                     onError={(e) => { e.target.onerror = null; e.target.src = "/brasao.png" }} // Fallback
@@ -144,7 +141,7 @@ function Header() {
                         <Link to="/" className="flex items-center gap-3 text-gray-800" onClick={closeMobileMenu}>
                              {/* --- [ATUALIZADO] Logo Dinâmico (Mobile) --- */}
                             <img 
-                                src={settings.header_logo_url.startsWith('http') ? settings.header_logo_url : `${API_URL}${settings.header_logo_url}`} 
+                                src={settings.header_logo_url.startsWith('http') ? settings.header_logo_url : settings.header_logo_url} 
                                 alt="Brasão da Polícia" 
                                 className="h-8 w-auto" 
                                 onError={(e) => { e.target.onerror = null; e.target.src = "/brasao.png" }} // Fallback

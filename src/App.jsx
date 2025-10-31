@@ -105,7 +105,7 @@ function App() {
 
         {/* === GRUPO 5: PAINEL STAFF (TUDO-EM-UM) === */}
         <Route 
-            path="/staff/admin" 
+            path="/staff/admin/*" 
             element={
                 // Proteção que exige o tipo 'policial' E a permissão 'is_staff'
                 <ProtectedRoute requiredPermission="is_staff">
