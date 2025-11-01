@@ -2048,4 +2048,73 @@
         font-size: 0.8rem;
     }
 }
-/* --- Fim de Design/LogsPage.css --- */
+/*
+ * CSS para o Seletor de Abas (Toggle)
+ * (Inspirado em image_6fa1f7.png)
+ */
+
+/* O container que centraliza o seletor */
+.nav-toggle-segment-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
+  width: 100%;
+}
+
+/* O fundo escuro do seletor (como na imagem 'Bots') */
+.nav-toggle-segment {
+  display: flex;
+  position: relative;
+  background-color: #2c2f33; /* Cor de fundo escura */
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* O botão individual (transparente) */
+.nav-toggle-button {
+  background-color: transparent;
+  border: none;
+  color: #94a3b8; /* Cor do texto inativo (cinza) */
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 10; /* Fica acima do fundo roxo */
+  transition: color 0.3s ease;
+  white-space: nowrap; /* Impede que o texto quebre */
+}
+
+/* Estilo do botão quando ATIVO */
+.nav-toggle-button.active {
+  color: #ffffff; /* Texto branco */
+}
+
+/* Estilo do botão quando desabilitado (ex: Aprovados, quando é a única opção) */
+.nav-toggle-button:disabled {
+    color: #ffffff;
+    cursor: default;
+}
+
+/* O fundo roxo que se move (usando framer-motion) */
+.nav-toggle-active-bg {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  background-color: #4f46e5; /* Roxo/Azul (cor 'active' de antes) */
+  border-radius: 8px;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.5);
+}
+
+/* Container para o conteúdo das sub-abas (fade) */
+.report-subview-content {
+    position: relative; /* Necessário para AnimatePresence */
+}

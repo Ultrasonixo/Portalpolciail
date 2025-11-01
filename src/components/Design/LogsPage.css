@@ -1,4 +1,4 @@
-/* src/components/LogsPage.css - VERSÃO ATUALIZADA COM FILTROS E DETALHES */
+/* src/components/design/LogsPage.css - ATUALIZADO COM TODAS AS CORES E CORREÇÕES */
 
 .page-header-logs {
     display: flex;
@@ -116,9 +116,6 @@
 /* --- ESTILOS PARA DETALHES FORMATADOS --- */
 .log-details-cell {
     padding: 8px 15px !important; /* Ajusta padding vertical */
-    /* white-space: normal !important; */ /* Garante que o padrão seja aplicado */
-    /* word-break: break-word; */ /* Permite quebrar palavras longas */
-    /* overflow-wrap: break-word; */ /* Alternativa para quebrar palavras */
 }
 
 .details-container {
@@ -148,7 +145,6 @@
 
 .detail-value {
     color: #334155;
-    /* word-break: break-all; */ /* Movido para o container pai (div na td) */
 }
 
 /* Para itens que ocupam a largura toda (como lista de alterações ou descrição de bug) */
@@ -211,23 +207,67 @@
     white-space: nowrap;
     display: inline-block; /* Garante comportamento de bloco */
 }
-/* Cores (já inclui os fallbacks) */
-.log-action-Manage-Career { background-color: #6366f1; }
-.log-action-Approve-Recruit { background-color: #10b981; }
-.log-action-Reject-Recruit, .log-action-Dismiss-Policial { background-color: #ef4444; }
-.log-action-Generate-Registration-Token { background-color: #f59e0b; } /* Nome completo */
-.log-action-Update-Policial-Data { background-color: #3b82f6; }
-.log-action-Create-Announcement { background-color: #0ea5e9; }
-.log-action-Bug-Report { background-color: #8b5cf6; }
-/* Cor unificada para Concursos e Fallbacks */
-.log-action-Create-Concurso,
-.log-action-Update-Concurso,
-.log-action-Delete-Concurso,
-.log-action-Create-Concurso-Fallback-V2,
-.log-action-Create-Concurso-Fallback-V1 {
-     background-color: #0d9488;
+
+/* ✅ CORREÇÃO: Nomes de classes em minúsculo */
+.log-action-manage-career { background-color: #6366f1; } /* indigo-500 */
+.log-action-approve-recruit { background-color: #10b981; } /* green-500 */
+.log-action-reject-recruit, .log-action-dismiss-policial { background-color: #ef4444; } /* red-500 */
+.log-action-generate-registration-token { background-color: #f59e0b; } /* amber-500 */
+.log-action-update-policial-data { background-color: #3b82f6; } /* blue-500 */
+.log-action-create-announcement { background-color: #0ea5e9; } /* cyan-500 */
+.log-action-bug-report { background-color: #8b5cf6; } /* violet-500 */
+.log-action-create-concurso,
+.log-action-update-concurso,
+.log-action-delete-concurso,
+.log-action-create-concurso-fallback-v2,
+.log-action-create-concurso-fallback-v1 {
+     background-color: #0d9488; /* teal-600 */
 }
-/* Adicione cores para outras ações se necessário */
+
+/* ✅ --- NOVAS CORES ADICIONADAS (com base no AdminPanel.jsx) --- ✅ */
+
+/* Ações de Staff (Alto Nível) */
+.log-action-generate-global-token { background-color: #d946ef; } /* fuchsia-500 */
+.log-action-update-portal-settings { background-color: #ec4899; } /* pink-500 */
+.log-action-update-corp-permissions { background-color: #6366f1; } /* indigo-500 */
+
+/* Ações de Staff (Usuário) */
+.log-action-staff-update-user-data { background-color: #3b82f6; } /* blue-500 */
+.log-action-staff-update-rank { background-color: #6366f1; } /* indigo-500 */
+.log-action-staff-apply-action { background-color: #f97316; } /* orange-500 */
+.log-action-staff-unban-ip { background-color: #22c55e; } /* green-500 */
+.log-action-staff-search-users { background-color: #64748b; } /* slate-500 */
+
+/* Ação de Login */
+.log-action-login { background-color: #14b8a6; } /* teal-500 */
+
+/* Cor padrão para ações não mapeadas (fallback) - ATUALIZADO */
+[class*="log-action-"]:not(
+    .log-action-manage-career,
+    .log-action-approve-recruit,
+    .log-action-reject-recruit,
+    .log-action-dismiss-policial,
+    .log-action-generate-registration-token,
+    .log-action-update-policial-data,
+    .log-action-create-announcement,
+    .log-action-bug-report,
+    .log-action-create-concurso,
+    .log-action-update-concurso,
+    .log-action-delete-concurso,
+    .log-action-create-concurso-fallback-v2,
+    .log-action-create-concurso-fallback-v1,
+    .log-action-generate-global-token,
+    .log-action-update-portal-settings,
+    .log-action-update-corp-permissions,
+    .log-action-staff-update-user-data,
+    .log-action-staff-update-rank,
+    .log-action-staff-apply-action,
+    .log-action-staff-unban-ip,
+    .log-action-login,
+    .log-action-staff-search-users
+) {
+    background-color: #64748b; /* Cinza padrão */
+}
 
 
 /* Paginação e Outros Estilos */

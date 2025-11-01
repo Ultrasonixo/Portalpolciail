@@ -226,7 +226,6 @@ const ManageUsersView = ({ onEditUser, onSuspendUser }) => {
                     try {
                         user.permissoes = JSON.parse(user.permissoes);
                     } catch (e) {
-                        console.error(`Falha ao parsear permissões do usuário ${user.id}:`, e);
                         user.permissoes = {};
                     }
                 } else if (!user.permissoes) {
@@ -249,7 +248,6 @@ const ManageUsersView = ({ onEditUser, onSuspendUser }) => {
             }
 
         } catch (err) {
-            console.error("Erro ao buscar usuários:", err);
             toast.update(toastId, { render: `Erro: ${err.message}`, type: "error", isLoading: false, autoClose: 4000, icon: <AnimatedXMark /> });
         } finally {
             setIsLoading(false);
@@ -462,7 +460,6 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
             try {
                  data = JSON.parse(textResponse);
             } catch (jsonError) {
-                console.error("Falha ao parsear JSON. Resposta do servidor:", textResponse);
                 throw new Error("Erro de comunicação. O servidor não respondeu com JSON.");
             }
 
@@ -472,7 +469,7 @@ const LogsView = ({ defaultActionFilter = 'Todos' }) => {
             
             setLogs(data.logs || []); setTotalPages(data.totalPages || 1);
         } catch (err) {
-            console.error("Erro ao buscar logs:", err); setError(`Falha ao carregar: ${err.message}`); setLogs([]);
+            setError(`Falha ao carregar: ${err.message}`); setLogs([]);
         } finally { setLoading(false); }
     }, [token, limit, logout]);
 
@@ -751,11 +748,17 @@ const ManageSubItemsModal = ({ isOpen, onClose, onRefresh, corporacoes, items, t
     const [ordem, setOrdem] = useState(0); 
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
+    // ✅ ETAPA 1: Estado para a nova permissão
+    const [permissoes, setPermissoes] = useState({ podeAprovarRelatorio: false });
+    
     const isPatentes = endpoint === 'patentes';
 
     useEffect(() => {
         if(isOpen && corporacoes.length > 0) {
-            setCorporacaoSigla(corporacoes[0].sigla);
+            // Define a primeira corporação como padrão ao abrir
+            if (!corporacaoSigla) { // Só define se não houver uma sigla
+                setCorporacaoSigla(corporacoes[0].sigla);
+            }
         }
         if (!isOpen) {
             resetForm();
@@ -766,6 +769,7 @@ const ManageSubItemsModal = ({ isOpen, onClose, onRefresh, corporacoes, items, t
         setNome(''); 
         setOrdem(0); 
         setEditingId(null);
+        setPermissoes({ podeAprovarRelatorio: false }); // ✅ ETAPA 1: Reseta permissão
         if (corporacoes.length > 0) setCorporacaoSigla(corporacoes[0].sigla);
     };
 
@@ -773,7 +777,18 @@ const ManageSubItemsModal = ({ isOpen, onClose, onRefresh, corporacoes, items, t
         setEditingId(item.id);
         setNome(item.nome);
         setCorporacaoSigla(item.corporacao_sigla);
-        if (isPatentes) setOrdem(item.ordem || 0);
+        if (isPatentes) {
+            setOrdem(item.ordem || 0);
+            
+            // ✅ ETAPA 1: Ler as permissões da patente ao clicar em Editar
+            let parsedPerms = {};
+            if (typeof item.permissoes === 'string') {
+                try { parsedPerms = JSON.parse(item.permissoes); } catch (e) {}
+            } else if (typeof item.permissoes === 'object' && item.permissoes !== null) {
+                parsedPerms = item.permissoes;
+            }
+            setPermissoes({ podeAprovarRelatorio: !!parsedPerms.podeAprovarRelatorio });
+        }
     };
 
     const handleDelete = async (item) => {
@@ -799,8 +814,9 @@ const ManageSubItemsModal = ({ isOpen, onClose, onRefresh, corporacoes, items, t
         const url = editingId ? `/api/staff/${endpoint}/${editingId}` : `/api/staff/${endpoint}`;
         const method = editingId ? 'PUT' : 'POST';
         
+        // ✅ ETAPA 1: Adiciona 'permissoes' ao body se for uma patente
         const body = isPatentes 
-            ? { nome, corporacao_sigla: corporacaoSigla, ordem }
+            ? { nome, corporacao_sigla: corporacaoSigla, ordem, permissoes: JSON.stringify(permissoes) }
             : { nome, corporacao_sigla: corporacaoSigla };
 
         try {
@@ -862,13 +878,32 @@ const ManageSubItemsModal = ({ isOpen, onClose, onRefresh, corporacoes, items, t
                                     )}
                                 </div>
                                 
+                                {/* ✅ ETAPA 1: Adicionar seletor de permissão */}
+                                {isPatentes && (
+                                    <div className="pt-4 border-t border-slate-200 mt-4">
+                                        <h4 className="text-md font-semibold text-slate-800 mb-2">Permissões da Patente</h4>
+                                        <PermissionToggle
+                                            label="Aprovar Relatórios"
+                                            description="Permite que usuários com esta patente aprovem/concluam relatórios."
+                                            isEnabled={!!permissoes.podeAprovarRelatorio}
+                                            onToggle={(newValue) => setPermissoes(prev => ({...prev, podeAprovarRelatorio: newValue}))}
+                                            disabled={loading}
+                                        />
+                                    </div>
+                                )}
+                                
                                 {/* Lista de Existentes */}
                                 <div className="mt-4">
                                     <h3 className="text-lg font-medium text-slate-700 mb-2">{title}s Atuais</h3>
                                     <ul className="divide-y divide-y divide-slate-200 border rounded-md max-h-[200px] overflow-y-auto">
                                         {items.map(item => (
                                             <li key={item.id} className="flex items-center justify-between p-2 hover:bg-slate-50">
-                                                <span className="text-sm">{item.nome} ({item.corporacao_sigla}) {isPatentes ? `[Ordem: ${item.ordem}]` : ''}</span>
+                                                <span className="text-sm">{item.nome} ({item.corporacao_sigla}) {isPatentes ? `[Ordem: ${item.ordem}]` : ''}
+                                                    {/* ✅ ETAPA 1: Mostrar status da permissão */}
+                                                    {isPatentes && item.permissoes?.podeAprovarRelatorio && (
+                                                        <i className="fas fa-check-circle text-green-500 ml-2" title="Pode aprovar relatórios"></i>
+                                                    )}
+                                                </span>
                                                 <div className="space-x-2">
                                                     <button type="button" onClick={() => handleEditClick(item)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium" disabled={loading}>Editar</button>
                                                     <button type="button" onClick={() => handleDelete(item)} className="text-xs text-red-600 hover:text-red-800 font-medium" disabled={loading}>Excluir</button>
@@ -921,7 +956,6 @@ const StructureView = () => {
             try {
                 data = await response.json();
             } catch (jsonError) {
-                console.error("Falha ao parsear JSON de estrutura:", jsonError);
                 throw new Error("Erro de comunicação com o servidor.");
             }
             if (!response.ok) {
@@ -935,13 +969,20 @@ const StructureView = () => {
                             : (typeof corp.permissoes === 'object' && corp.permissoes !== null ? corp.permissoes : {})
             }));
             
+            // ✅ ETAPA 1: Adicionar parsing de permissões para patentes
+            const processedPatentes = (data.patentes || []).map(patente => ({
+                ...patente,
+                permissoes: typeof patente.permissoes === 'string' && patente.permissoes.startsWith('{')
+                            ? JSON.parse(patente.permissoes)
+                            : (typeof patente.permissoes === 'object' && patente.permissoes !== null ? patente.permissoes : {})
+            }));
+            
             setStructureData({
                 corporacoes: processedCorps,
-                patentes: data.patentes || [],
+                patentes: processedPatentes, // ✅ ETAPA 1: Usar patentes processadas
                 divisoes: data.divisoes || []
             });
         } catch (err) {
-            console.error("Erro ao buscar dados de estrutura:", err);
             setError(err.message);
         } finally {
             setLoading(false);
@@ -1116,12 +1157,13 @@ const StructureView = () => {
 
 
 // --- [INÍCIO] VISÃO 5: PAINEL TÉCNICO ---
-const TechPanelView = ({ setModal }) => { // <-- Recebe setModal
+// ✅ ETAPA 1: Passa 'corporacoes' como prop
+const TechPanelView = ({ setModal, corporacoes = [] }) => { 
     const { user, token, logout } = useAuth();
     const canAccessTech = user?.permissoes?.is_dev === true || user?.permissoes?.is_staff === true;
 
-    // ... (restante dos estados: token, settings, banners) ...
-    const [tokenCorporacao, setTokenCorporacao] = useState('PM'); 
+    // ✅ ETAPA 1: Define o estado inicial com base nas props
+    const [tokenCorporacao, setTokenCorporacao] = useState(corporacoes.length > 0 ? corporacoes[0].sigla : ''); 
     const [tokenUses, setTokenUses] = useState(1);
     const [tokenDuration, setTokenDuration] = useState(24);
     const [generatedToken, setGeneratedToken] = useState('');
@@ -1140,6 +1182,13 @@ const TechPanelView = ({ setModal }) => { // <-- Recebe setModal
     const [isSavingBanners, setIsSavingBanners] = useState(false);
     const maxBanners = 10;
 
+    // ✅ ETAPA 1: Define a corporação padrão assim que a lista for carregada
+    useEffect(() => {
+        if (!tokenCorporacao && corporacoes && corporacoes.length > 0) {
+            setTokenCorporacao(corporacoes[0].sigla);
+        }
+    }, [corporacoes, tokenCorporacao]);
+
     // --- API Call: Buscar Configurações do Portal ---
     const fetchPortalSettings = useCallback(async () => {
         setIsLoadingSettings(true);
@@ -1149,8 +1198,6 @@ const TechPanelView = ({ setModal }) => { // <-- Recebe setModal
             try {
                 data = await response.json();
             } catch (jsonError) {
-                const textResponse = await response.text();
-                console.error("Falha ao parsear JSON de settings. Resposta do servidor:", textResponse);
                 throw new Error("Erro de comunicação. O servidor não respondeu com JSON.");
             }
             if (!response.ok) throw new Error(data.message || 'Falha ao buscar configurações.');
@@ -1210,8 +1257,6 @@ const TechPanelView = ({ setModal }) => { // <-- Recebe setModal
             try {
                 result = await response.json();
             } catch (jsonError) {
-                 const textResponse = await response.text();
-                 console.error("Falha ao parsear JSON. Resposta do servidor:", textResponse);
                  throw new Error("Erro de comunicação. O servidor não respondeu com JSON.");
             }
 
@@ -1260,8 +1305,6 @@ const TechPanelView = ({ setModal }) => { // <-- Recebe setModal
             try {
                 result = await response.json();
             } catch (jsonError) {
-                 const textResponse = await response.text();
-                 console.error("Falha ao parsear JSON. Resposta do servidor:", textResponse);
                  throw new Error("Erro de comunicação. O servidor não respondeu com JSON.");
             }
 
@@ -1336,6 +1379,9 @@ const TechPanelView = ({ setModal }) => { // <-- Recebe setModal
     
     
     const handleManagePermissions = () => toast.info("Abrir modal Gerenciar Permissões (a implementar - requer is_dev?)");
+    // Placeholder - Crie a função se ela não existir
+    const handleViewServerStatus = () => toast.info("Função 'Ver Status do Sistema' não implementada.");
+
 
     if (!canAccessTech) {
         return (
@@ -1371,10 +1417,22 @@ const TechPanelView = ({ setModal }) => { // <-- Recebe setModal
                             </div>
                             <div className="col-span-3 sm:col-span-1">
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Corporação</label>
-                                <select value={tokenCorporacao} onChange={(e) => setTokenCorporacao(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white" disabled={isGeneratingToken}>
-                                    <option value="PM">PM</option>
-                                    <option value="PC">PC</option>
-                                    <option value="GCM">GCM</option>
+                                {/* ✅ ETAPA 1: Dropdown dinâmico */}
+                                <select 
+                                    value={tokenCorporacao} 
+                                    onChange={(e) => setTokenCorporacao(e.target.value)} 
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white" 
+                                    disabled={isGeneratingToken || corporacoes.length === 0}
+                                >
+                                    {corporacoes.length === 0 ? (
+                                        <option value="">Carregando...</option>
+                                    ) : (
+                                        corporacoes.map(corp => (
+                                            <option key={corp.id} value={corp.sigla}>
+                                                {corp.nome} ({corp.sigla})
+                                            </option>
+                                        ))
+                                    )}
                                 </select>
                             </div>
                         </div>
@@ -1524,11 +1582,12 @@ const TechPanelView = ({ setModal }) => { // <-- Recebe setModal
             {/* Cards Restantes (Acesso Dev) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                  <AdminActionCard 
-                    title="Gerenciar IPs Banidos" // <-- NOVO CARD
+                    title="Gerenciar IPs Banidos" // <-- Card de Desban
                     description="Perdoar (desbanir) IPs que foram banidos do sistema."
                     icon="fa-network-wired"
                     onClick={() => setModal('manageBannedIPs', true)}
-                    disabled={!user?.permissoes?.is_dev} // Apenas Dev
+                    // ✅ CORREÇÃO APLICADA: Permite Staff e Dev
+                    disabled={!user?.permissoes?.is_staff && !user?.permissoes?.is_dev}
                 />
                  <AdminActionCard 
                     title="Gerenciar Permissões"
@@ -1587,7 +1646,7 @@ const EditUserModal = ({ isOpen, onClose, user: userToEdit, onSave, structureDat
                         userPerms = permsString;
                     }
                 } catch(e) {
-                    console.error("Erro ao parsear permissões do usuário:", e);
+                    // Erro ao parsear
                 }
 
                 // Preenche dados específicos de policial
@@ -1778,7 +1837,8 @@ const EditUserModal = ({ isOpen, onClose, user: userToEdit, onSave, structureDat
                                                 <option value="Aprovado">Aprovado (Ativo)</option>
                                                 <option value="Reprovado">Reprovado</option>
                                                 <option value="Suspenso">Suspenso</option>
-                                                <option value="Demitido">Demitido</option>
+                                                {/* ✅ CORREÇÃO APLICADA (Texto) */}
+                                                <option value="Demitido">Banido</option>
                                             </select>
                                         </div>
 
@@ -1835,7 +1895,8 @@ const SuspendBanModal = ({ isOpen, onClose, user: userToEdit, onSave }) => {
     const acoesDisponiveis = {
         Policial: [
             { value: 'suspender', label: 'Suspender Conta' },
-            { value: 'banir', label: 'Banir (Demitir)' },
+            // ✅ CORREÇÃO APLICADA (Texto)
+            { value: 'banir', label: 'Banir' }, 
             { value: 'reativar', label: 'Reativar (Aprovar)' }
         ],
         Civil: [
@@ -1998,7 +2059,6 @@ const ManageBannedIPsModal = ({ isOpen, onClose, token, logout }) => {
             if (!response.ok) throw new Error(data.message || 'Erro ao buscar IPs banidos.');
             setBannedIPs(data);
         } catch (err) {
-            console.error("Erro ao buscar IPs banidos:", err);
             setError(err.message);
         } finally {
             setLoading(false);
@@ -2122,9 +2182,8 @@ function AdminPanel() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [modalState, setModalState] = useState({
         editUser: false,
-        // promoteUser: false, // <-- Removido
         suspendUser: false,
-        manageBannedIPs: false, // <-- Adicionado
+        manageBannedIPs: false, 
     });
     
     // Estado para dados de Estrutura (passar para os modais)
@@ -2189,14 +2248,20 @@ function AdminPanel() {
                                 : (typeof corp.permissoes === 'object' && corp.permissoes !== null ? corp.permissoes : {})
                 }));
                 
+                // ✅ ETAPA 1: Adicionar parsing de permissões para patentes
+                const processedPatentes = (data.patentes || []).map(patente => ({
+                    ...patente,
+                    permissoes: typeof patente.permissoes === 'string' && patente.permissoes.startsWith('{')
+                                ? JSON.parse(patente.permissoes)
+                                : (typeof patente.permissoes === 'object' && patente.permissoes !== null ? patente.permissoes : {})
+                }));
+
                 setStructureData({
                     corporacoes: processedCorps,
-                    patentes: data.patentes || [],
+                    patentes: processedPatentes, // ✅ ETAPA 1: Usar patentes processadas
                     divisoes: data.divisoes || []
-                    // Não precisamos mais da lista de policiais aqui, pois a search-users já traz tudo
                 });
             } catch (err) {
-                console.error("Erro ao buscar dados de estrutura para o AdminPanel:", err);
                 toast.error("Não foi possível carregar os dados de patentes/divisões.", { icon: <AnimatedXMark /> });
             } finally {
                 setLoadingStructure(false);
@@ -2248,7 +2313,11 @@ function AdminPanel() {
             case 'bug_reports':
                 return <LogsView key="bugs" defaultActionFilter="Bug Report" />;
             case 'tech_panel':
-                return <TechPanelView setModal={handleOpenBannedIPsModal} />;
+                // ✅ ETAPA 1: Passa as corporações para o painel técnico
+                return <TechPanelView 
+                            setModal={() => handleOpenBannedIPsModal()} 
+                            corporacoes={structureData.corporacoes} 
+                       />;
             default:
                 return <DashboardView user={user} setView={setCurrentView} />;
         }
@@ -2316,4 +2385,3 @@ function AdminPanel() {
 }
 
 export default AdminPanel;
-

@@ -693,7 +693,7 @@ app.post('/api/policia/login', async (req, res) => {
         }
         
         // --- Atualiza last_ip e last_login ---
-        await db.query('UPDATE usuariospoliciais SET last_ip = ?, last_login = NOW() WHERE id = ?', [ipAddress, policial.id]);
+        await db.query('UPDATE usuariospoliciais SET last_login_ip = ? WHERE id = ?', [ipAddress, policial.id]);
         
         let userPermissoes = {};
         try {
@@ -954,23 +954,41 @@ app.post('/api/admin/generate-token', checkRh, async (req, res) => {
 
     const maxUsesInt = parseInt(max_uses, 10);
     const durationHoursInt = parseInt(duration_hours, 10);
-    if (isNaN(maxUsesInt) || maxUsesInt < 1 || isNaN(durationHoursInt) || durationHoursInt <= 0) return res.status(400).json({ message: "Quantidade de usos ou duração inválida." });
+    if (isNaN(maxUsesInt) || maxUsesInt < 1 || isNaN(durationHoursInt) || durationHoursInt <= 0) {
+        return res.status(400).json({ message: "Quantidade de usos ou duração inválida." });
+    }
     
+    // Validação se o RH logado pode criar para essa corp
     if (adminUser?.corporacao && corpTarget !== adminUser.corporacao) {
          return res.status(403).json({ message: `Administrador RH só pode gerar tokens para sua corporação (${adminUser.corporacao}).` });
     }
-    if (!corpTarget) return res.status(400).json({ message: "Corporação para o token não definida." });
+    if (!corpTarget) {
+        return res.status(400).json({ message: "Corporação para o token não definida." });
+    }
 
     const newToken = crypto.randomBytes(32).toString('hex');
     const now = new Date();
     const expiresAt = new Date(now.getTime() + durationHoursInt * 60 * 60 * 1000);
+    
     try {
+        // ✅ CORREÇÃO: Validação dinâmica contra a tabela 'corporacoes'
+        const [corpExists] = await db.query("SELECT id FROM corporacoes WHERE sigla = ?", [corpTarget]);
+        if (corpExists.length === 0) {
+            return res.status(400).json({ message: `Corporação alvo '${corpTarget}' não existe na tabela 'corporacoes'.` });
+        }
+
         const insertSql = `INSERT INTO registration_tokens (token, corporacao, created_by_admin_id, expires_at, max_uses, is_active) VALUES (?, ?, ?, ?, ?, TRUE)`;
         await db.query(insertSql, [newToken, corpTarget, adminUser.id, expiresAt, maxUsesInt]);
+        
         const logDetails = { uses: maxUsesInt, duration: durationHoursInt, corp: corpTarget, tokenStart: newToken.substring(0, 8) };
         await logAdminAction(adminUser.id, 'Generate Registration Token', logDetails, ipAddress);
+        
         res.status(201).json({ message: `Token gerado! Válido por ${durationHoursInt}h para ${maxUsesInt} uso(s).`, token: newToken });
-    } catch (err) { console.error(`Erro ao inserir token de registro (IP: ${ipAddress}):`, err); res.status(500).json({ message: "Erro interno ao gerar token." }); }
+    
+    } catch (err) {
+        console.error(`Erro ao inserir token de registro (IP: ${ipAddress}):`, err);
+        res.status(500).json({ message: "Erro interno ao gerar token." });
+    }
 });
 
 app.get('/api/admin/recrutas', checkRh, async (req, res) => {
@@ -1610,7 +1628,8 @@ app.post('/api/staff/search-users', checkStaff, async (req, res) => {
                 (SELECT 
                     id, nome_completo, id_passaporte as passaporte, 'Ativo' as status,
                     NULL as corporacao, 'Civil' as tipo,
-                    NULL as discord_id, telefone_rp, gmail, NULL as patente, NULL as divisao
+                    NULL as discord_id, telefone_rp, gmail, NULL as patente, NULL as divisao,
+                    NULL as permissoes  /* <-- ADICIONE ESTA LINHA */
                 FROM usuarios
                 ${civilWhereString})
             `;
@@ -2078,90 +2097,89 @@ app.put('/api/staff/civil/:id', authenticateToken, checkStaff, async (req, res) 
 });
 
 // ROTA PARA STAFF APLICAR AÇÕES (SUSPENDER, BANIR, REATIVAR)
-app.post('/api/staff/user/:tipo/:id/action', authenticateToken, checkStaff, async (req, res) => {
+app.post('/api/staff/user/:tipo/:id/action', checkStaff, async (req, res) => {
+    const db = getDbConnection(req);
     const { tipo, id } = req.params;
     const { acao, motivo, duracaoHoras, banirIp } = req.body;
-    
-    // Usa a tabela correta baseada no tipo de usuário
-    const table = tipo.toLowerCase() === 'policial' ? 'usuariospoliciais' : 'usuarios';
-    if (table !== 'usuariospoliciais' && table !== 'usuarios') {
-        return res.status(400).json({ message: 'Tipo de usuário inválido.' });
+    const adminUser = req.user;
+    const ipAddress = req.ip; // IP do Admin
+
+    if (!motivo) {
+        return res.status(400).json({ message: "O motivo é obrigatório." });
     }
 
-    let novoStatus = '';
-    let logMessage = '';
-
     try {
-        // --- Lógica para POLICIAL (tem status) ---
-        if (table === 'usuariospoliciais') {
+        let userIp = null; // IP do usuário a ser banido (vindo do DB)
+        let logDetails = { user_id: id, tipo: tipo, acao: acao, motivo: motivo };
+
+        if (tipo === 'Policial') {
+            const [user] = await db.query('SELECT * FROM usuariospoliciais WHERE id = ?', [id]);
+            if (user.length === 0) return res.status(404).json({ message: "Policial não encontrado." });
+            
+            // Pega o IP do usuário salvo no banco de dados
+            userIp = user[0].ip; 
+
+            let novoStatus = '';
+            let suspensaoData = null;
+
             if (acao === 'suspender') {
                 novoStatus = 'Suspenso';
-                logMessage = `Suspendeu policial ID ${id} por ${duracaoHoras || 'N/D'}h. Motivo: ${motivo}`;
-            
+                const duracaoMs = parseInt(duracaoHoras, 10) * 3600000;
+                suspensaoData = new Date(Date.now() + duracaoMs);
+                logDetails.duracaoHoras = duracaoHoras;
+                logDetails.suspensao_expira = suspensaoData;
             } else if (acao === 'banir') {
-                novoStatus = 'Reprovado'; // Status de banimento/demissão
-                logMessage = `Baniu policial ID ${id}. Motivo: ${motivo}.`;
-            
+                // ✅ CORREÇÃO AQUI
+                novoStatus = 'Demitido'; // Estava 'Reprovado'
+                suspensaoData = null; // Limpa a data de suspensão
             } else if (acao === 'reativar') {
-                novoStatus = 'Aprovado'; // Status padrão de atividade
-                logMessage = `Reativou policial ID ${id}. Motivo: ${motivo}.`;
-            
+                novoStatus = 'Aprovado';
+                suspensaoData = null; // Limpa a data de suspensão
             } else {
-                return res.status(400).json({ message: 'Ação desconhecida para policial.' });
+                return res.status(400).json({ message: "Ação inválida." });
             }
 
-            const [result] = await db.query(`UPDATE usuariospoliciais SET status = ? WHERE id = ?`, [novoStatus, id]);
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ message: 'Policial não encontrado.' });
-            }
-
-        // --- Lógica para CIVIL (não tem status, banir = deletar) ---
-        } else if (table === 'usuarios') {
-            if (acao === 'banir') {
-                logMessage = `Baniu (deletou) civil ID ${id}. Motivo: ${motivo}.`;
-                
-                const [result] = await db.query(`DELETE FROM usuarios WHERE id = ?`, [id]);
-                if (result.affectedRows === 0) {
-                    return res.status(404).json({ message: 'Civil não encontrado.' });
-                }
-
-            } else {
-                // Civis não podem ser 'suspensos' ou 'reativados' pois não têm status
-                return res.status(400).json({ message: `Ação '${acao}' não é suportada para civis.` });
-            }
-        }
-
-        // --- Lógica de BANIR IP (para ambos os tipos, se for 'banir') ---
-        if (acao === 'banir' && banirIp) {
-            logMessage += ' [Banimento por IP solicitado]';
-            
-            // Tenta pegar o IP dos logs (mais confiável para policiais)
-            const [ipRows] = await db.query(
-                `SELECT ip_address FROM logs_auditoria WHERE usuario_id = ? ORDER BY data_log DESC LIMIT 1`, 
-                [id]
+            await db.query(
+                'UPDATE usuariospoliciais SET status = ?, data_suspensao = ? WHERE id = ?',
+                [novoStatus, suspensaoData, id]
             );
             
-            if (ipRows.length > 0 && ipRows[0].ip_address) {
-                const userIp = ipRows[0].ip_address;
+            // Lógica de Banir IP
+            if (acao === 'banir' && banirIp === true && userIp) {
+                await db.query('INSERT INTO ip_bans (ip, motivo, admin_id) VALUES (?, ?, ?)', [userIp, motivo, adminUser.id]);
+                logDetails.ip_banned = userIp;
+            } else if (acao === 'banir' && banirIp === true && !userIp) {
+                logDetails.ip_ban_failed_reason = "IP do usuário não encontrado no banco de dados.";
+            }
+            
+        } else if (tipo === 'Civil') {
+            const [user] = await db.query('SELECT * FROM usuarios WHERE id = ?', [id]);
+            if (user.length === 0) return res.status(404).json({ message: "Usuário civil não encontrado." });
+            
+            // Pega o IP do usuário salvo no banco de dados
+            userIp = user[0].ip; 
+
+            if (acao === 'banir') {
+                // Para civis, 'banir' significa deletar
+                await db.query('DELETE FROM usuarios WHERE id = ?', [id]);
                 
-                // Insere o IP na tabela de banidos (IGNORA se já existir)
-                await db.query(
-                    'INSERT IGNORE INTO banned_ips (ip, motivo, banned_by_id) VALUES (?, ?, ?)', 
-                    [userIp, `Banido com ${tipo} ID ${id} (${motivo})`, req.user.id]
-                );
-                logMessage += ` (IP: ${userIp} banido)`;
+                if (banirIp === true && userIp) {
+                    await db.query('INSERT INTO ip_bans (ip, motivo, admin_id) VALUES (?, ?, ?)', [userIp, motivo, adminUser.id]);
+                    logDetails.ip_banned = userIp;
+                } else if (banirIp === true && !userIp) {
+                    logDetails.ip_ban_failed_reason = "IP do usuário não encontrado no banco de dados.";
+                }
             } else {
-                logMessage += ' (IP do usuário não encontrado nos logs para banir)';
+                return res.status(400).json({ message: "Ação inválida para civil." });
             }
         }
 
-        // Loga a ação do staff
-        await logAdminAction(req.user.id, 'Staff: Apply Action', logMessage, req.ip);
+        await logAdminAction(adminUser.id, 'Staff: Apply Action', logDetails, ipAddress);
+        res.status(200).json({ message: `Ação '${acao}' aplicada com sucesso.` });
 
-        res.json({ message: 'Ação aplicada com sucesso!' });
-    } catch (error) {
-        console.error(`Erro ao aplicar ação ${acao} (Staff):`, error);
-        res.status(500).json({ message: 'Erro interno ao aplicar ação.' });
+    } catch (err) {
+        // console.error(`[Staff Action] Erro ao aplicar ação (IP: ${ipAddress}):`, err); // Removido
+        res.status(500).json({ message: "Erro interno ao aplicar ação." });
     }
 });
 

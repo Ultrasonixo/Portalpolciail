@@ -6,6 +6,8 @@ import LocationPickerMap from '../components/LocationPickerMap.jsx';
 import PainelRH from './PainelRH.jsx'; 
 import HeatmapPage from './HeatmapPage.jsx';
 import AnaliseTendenciasPage from './AnaliseTendenciasPage.jsx';
+// ✅ ETAPA 2: Importar Framer Motion
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Importa os gráficos do Recharts
 import { 
@@ -354,7 +356,7 @@ const DashboardView = ({ user, token, logout, setView }) => {
                 const anunciosOrdenadosLimitados = anunciosFiltrados.sort((a, b) => new Date(b.data_publicacao) - new Date(a.data_publicacao)).slice(0, 4);
                 setAnunciosVisiveis(anunciosOrdenadosLimitados);
             } catch (error) {
-                if (error.message !== "Sessão inválida") { console.error(`Falha ao carregar dados: ${error.message}`); }
+                if (error.message !== "Sessão inválida") { /* Não mostra erro de console se for logout */ }
             } finally { setLoadingData(false); }
         };
         fetchData();
@@ -489,17 +491,14 @@ const ConsultaBoletinsView = ({ user, token, logout, setView }) => {
                                                     <i className="fas fa-eye"></i>
                                                 </button>
 
-                                                {/* ✅ 1. CORREÇÃO DE PERMISSÃO (Lista): 
-                                                    Usa 'podeAssumirBO' OU 'podeEditarBO' para mostrar o botão */}
+                                                {/* Permissão para Assumir/Editar B.O. */}
                                                 {(user?.permissoes?.podeAssumirBO || user?.permissoes?.podeEditarBO) && (
                                                     <button
                                                         onClick={() => handleEditClick(bo.id, !!bo.policial_responsavel_id)}
                                                         className="btn-action edit"
-                                                        // O title muda dependendo se o BO já foi assumido
                                                         title={bo.policial_responsavel_id ? 
                                                                 (user?.permissoes?.podeEditarBO ? "Editar Boletim" : "Ver Detalhes") 
                                                                 : (user?.permissoes?.podeAssumirBO ? "Assumir Caso" : "Ver Detalhes")}
-                                                        // Desabilita o botão se não tiver a permissão específica
                                                         disabled={
                                                             (bo.policial_responsavel_id && !user?.permissoes?.podeEditarBO) ||
                                                             (!bo.policial_responsavel_id && !user?.permissoes?.podeAssumirBO)
@@ -534,8 +533,6 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
     const [error, setError] = useState(null);
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
-    // ✅ 2. CORREÇÃO DE PERMISSÃO (Detalhes):
-    // As permissões agora vêm do objeto 'user'
     const isResponsavelPeloCaso = boletim?.policial_responsavel_id === user?.id;
     const podeAssumir = user?.permissoes?.podeAssumirBO && boletim && !boletim.policial_responsavel_id;
     const podeEditarCampos = user?.permissoes?.podeEditarBO && isResponsavelPeloCaso && isEditing;
@@ -559,8 +556,6 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
             const data = await response.json();
             setBoletim(data);
             
-            // ✅ 3. CORREÇÃO DE PERMISSÃO (fetchData):
-            // Só permite entrar em 'modo de edição' automaticamente se o usuário tiver a permissão
             if (user?.permissoes?.podeEditarBO) {
                  setIsEditing(startInEditMode === true && data.policial_responsavel_id === user?.id);
             } else {
@@ -639,8 +634,6 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
             toast.update(toastId, { render: result.message || "Caso assumido!", type: "success", isLoading: false, autoClose: 3000, icon: <AnimatedCheckmark /> });
             await fetchData();
             
-            // ✅ 4. CORREÇÃO DE PERMISSÃO (handleAssumir):
-            // Só entra em modo de edição após assumir se também tiver permissão de editar
             if (user?.permissoes?.podeEditarBO) {
                 setIsEditing(true);
             }
@@ -670,8 +663,6 @@ const BoletimDetailView = ({ user, token, logout, setView, navProps }) => {
             return ( <button type="button" onClick={handleAssumirCaso} className="btn-assumir"><i className="fas fa-gavel"></i> Assumir Caso</button> );
         }
         
-        // ✅ 5. CORREÇÃO DE PERMISSÃO (Botão Editar):
-        // Troca a checagem de 'isCivil' pela permissão 'podeEditarBO'
         if (isResponsavelPeloCaso && user?.permissoes?.podeEditarBO) {
             if (isEditing) {
                 return (
@@ -1105,10 +1096,221 @@ const ProfileView = ({ user, token, logout, setView, navProps }) => {
     );
 };
 
+
+// --- ✅ ETAPA 2: NOVA VIEW (RelatoriosEmAnaliseView) ---
+// (Esta view é para 'Chefes' aprovarem relatórios)
+const RelatoriosEmAnaliseView = ({ user, token, logout, setView }) => {
+    // POR ENQUANTO: Dados de exemplo.
+    // No futuro, faremos um fetch em /api/policia/relatorios/pendentes
+    const [relatorios, setRelatorios] = useState([
+        { id: 1001, tipo: 'Ocorrência', data_envio: '2025-10-31T10:00:00Z', autor_nome: 'Agente Silva', status: 'Em Análise' },
+        { id: 1002, tipo: 'Patrulhamento', data_envio: '2025-10-30T23:00:00Z', autor_nome: 'Agente Mendes', status: 'Em Análise' }
+    ]);
+    const [loading, setLoading] = useState(false); // (será true quando fizermos o fetch)
+    const [error, setError] = useState(null);
+
+    const formatarData = (data) => data ? new Date(data).toLocaleString('pt-BR') : 'Inválida';
+    
+    // (Futuras funções handleApprove, handleReject, handleView vão aqui)
+
+    return (
+        <AnimatePresence mode="wait">
+            <motion.div
+                key="analise-view"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+            >
+                <h2 className="content-title"><i className="fas fa-hourglass-half"></i> Relatórios Pendentes de Análise</h2>
+                <p className="content-subtitle">Revise e aprove ou rejeite os relatórios enviados pela sua corporação.</p>
+                
+                {loading && <p className="loading-text">Carregando relatórios...</p>}
+                {error && <p className="error-message">{error}</p>}
+                {!loading && !error && (
+                    // Reutiliza o estilo da tabela de boletins
+                    <div className="boletins-table-widget" style={{marginTop: '20px'}}> 
+                        <div className="table-responsive">
+                            <table className="boletins-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Tipo</th>
+                                        <th>Autor</th>
+                                        <th>Data Envio</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {relatorios.length > 0 ? relatorios.map(rel => (
+                                        <tr key={rel.id}>
+                                            <td>{rel.id}</td>
+                                            <td>{rel.tipo}</td>
+                                            <td>{rel.autor_nome}</td>
+                                            <td>{formatarData(rel.data_envio)}</td>
+                                            {/* Reutiliza o status-badge de ConsultaBoletins.css */}
+                                            <td><span className="status-badge status-aguardando-análise">{rel.status}</span></td>
+                                            <td className="actions-cell">
+                                                <button className="btn-action view" title="Ver Detalhes"><i className="fas fa-eye"></i></button>
+                                                <button className="btn-action approve" title="Aprovar" style={{color: '#10b981'}}><i className="fas fa-check"></i></button>
+                                                <button className="btn-action reject" title="Rejeitar" style={{color: '#ef4444'}}><i className="fas fa-times"></i></button>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr><td colSpan="6" style={{textAlign: 'center', color: '#64748b'}}>Nenhum relatório pendente.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+            </motion.div>
+        </AnimatePresence>
+    );
+};
+
+// --- ✅ ETAPA 2: NOVA VIEW (RelatoriosAprovadosView) ---
+// (Esta view é para todos verem os relatórios concluídos)
+const RelatoriosAprovadosView = ({ user, token, logout, setView }) => {
+    // POR ENQUANTO: Dados de exemplo.
+    // No futuro, faremos um fetch em /api/policia/relatorios/aprovados
+    const [relatorios, setRelatorios] = useState([
+        { id: 998, tipo: 'Ocorrência', data_envio: '2025-10-29T14:00:00Z', autor_nome: 'Agente Barreto', status: 'Aprovado', aprovador_nome: 'Capitão Nunes' },
+        { id: 997, tipo: 'Interna', data_envio: '2025-10-28T10:00:00Z', autor_nome: 'Agente Silva', status: 'Aprovado', aprovador_nome: 'Capitão Nunes' },
+    ]);
+    const [loading, setLoading] = useState(false); // (será true quando fizermos o fetch)
+    const [error, setError] = useState(null);
+
+    const formatarData = (data) => data ? new Date(data).toLocaleString('pt-BR') : 'Inválida';
+    
+    return (
+         <AnimatePresence mode="wait">
+            <motion.div
+                key="aprovados-view"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+            >
+                <h2 className="content-title"><i className="fas fa-check-circle"></i> Relatórios Concluídos e Aprovados</h2>
+                <p className="content-subtitle">Histórico de todos os relatórios que foram revisados e aprovados.</p>
+                
+                {loading && <p className="loading-text">Carregando relatórios...</p>}
+                {error && <p className="error-message">{error}</p>}
+                {!loading && !error && (
+                    <div className="boletins-table-widget" style={{marginTop: '20px'}}>
+                        <div className="table-responsive">
+                            <table className="boletins-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Tipo</th>
+                                        <th>Autor</th>
+                                        <th>Data Envio</th>
+                                        <th>Status</th>
+                                        <th>Aprovado Por</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {relatorios.length > 0 ? relatorios.map(rel => (
+                                        <tr key={rel.id}>
+                                            <td>{rel.id}</td>
+                                            <td>{rel.tipo}</td>
+                                            <td>{rel.autor_nome}</td>
+                                            <td>{formatarData(rel.data_envio)}</td>
+                                            <td><span className="status-badge status-resolvido">{rel.status}</span></td>
+                                            <td>{rel.aprovador_nome}</td>
+                                            <td className="actions-cell">
+                                                <button className="btn-action view" title="Ver Detalhes"><i className="fas fa-eye"></i></button>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr><td colSpan="7" style={{textAlign: 'center', color: '#64748b'}}>Nenhum relatório aprovado encontrado.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+            </motion.div>
+        </AnimatePresence>
+    );
+};
+
+// --- ✅ ETAPA 2: NOVA VIEW (GestaoRelatoriosView) ---
+// (Esta view é o container para o toggle 'bonito')
+const GestaoRelatoriosView = ({ user, token, logout, setView }) => {
+    // Define a aba padrão. 'em_analise' se for chefe, senão 'aprovados'.
+    const [subView, setSubView] = useState(user?.permissoes?.podeAprovarRelatorio ? 'em_analise' : 'aprovados');
+
+    return (
+        <div className="report-view-content">
+            {/* O Seletor de Abas (Toggle) */}
+            <div className="nav-toggle-segment-container"> {/* Container para centralizar */}
+                <div className="nav-toggle-segment">
+                    
+                    {/* Botão "Em Análise" (Condicional) */}
+                    {user?.permissoes?.podeAprovarRelatorio && (
+                        <button
+                            className={`nav-toggle-button ${subView === 'em_analise' ? 'active' : ''}`}
+                            onClick={() => setSubView('em_analise')}
+                        >
+                            <i className="fas fa-hourglass-half"></i>
+                            <span>Em Análise</span>
+                            {/* O fundo animado do Framer Motion */}
+                            {subView === 'em_analise' && (
+                                <motion.div 
+                                    className="nav-toggle-active-bg"
+                                    layoutId="nav-toggle-bg-relatorios" // ID único para a animação
+                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                />
+                            )}
+                        </button>
+                    )}
+                    
+                    {/* Botão "Aprovados" (Sempre visível) */}
+                    <button
+                        className={`nav-toggle-button ${subView === 'aprovados' ? 'active' : ''}`}
+                        onClick={() => setSubView('aprovados')}
+                    >
+                        <i className="fas fa-check-circle"></i>
+                        <span>Aprovados</span>
+                         {subView === 'aprovados' && (
+                                <motion.div 
+                                    className="nav-toggle-active-bg"
+                                    layoutId="nav-toggle-bg-relatorios" // ID único para a animação
+                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                />
+                            )}
+                    </button>
+                </div>
+            </div>
+
+            {/* Renderiza o conteúdo da aba selecionada */}
+            <div className="report-subview-content">
+                {/* Usamos AnimatePresence para a transição de fade */}
+                <AnimatePresence mode="wait">
+                    {subView === 'em_analise' && (
+                        <RelatoriosEmAnaliseView user={user} token={token} logout={logout} setView={setView} />
+                    )}
+                    {subView === 'aprovados' && (
+                        <RelatoriosAprovadosView user={user} token={token} logout={logout} setView={setView} />
+                    )}
+                </AnimatePresence>
+            </div>
+        </div>
+    );
+};
+
+
 // --- 6. Relatórios View (RelatoriosPage.jsx) ---
 const RelatoriosView = ({ user, token, logout, setView }) => {
-    // ... (Inalterado, com a correção anterior do gráfico) ...
-    const [view, setInternalView] = useState('resumo'); 
+    
+    // ✅ ETAPA 2: Mudar aba padrão para 'estrategico' (Inteligência)
+    const [view, setInternalView] = useState('estrategico'); 
+    
     const [stats, setStats] = useState(null);
     const [loadingStats, setLoadingStats] = useState(true);
     const [statsError, setStatsError] = useState(null);
@@ -1118,9 +1320,14 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
+    // ✅ ETAPA 2: Verificar permissão de aprovação
+    const podeAprovarRelatorio = user?.permissoes?.podeAprovarRelatorio;
+
     const initialFormData = useMemo(() => ({
         tipo_relatorio: 'Ocorrência', unidade_responsavel: user?.divisao || user?.corporacao || '',
-        status: 'Em Aberto', id_ocorrencia_associada: '', local_ocorrencia: '',
+        // ✅ ETAPA 2: Mudar status padrão para "Em Análise"
+        status: 'Em Análise', 
+        id_ocorrencia_associada: '', local_ocorrencia: '',
         data_hora_fato: '', natureza_ocorrencia: '', descricao_detalhada: '',
         testemunhas: '', suspeitos: '', vitimas: '', veiculos_envolvidos: '',
         objetos_apreendidos: '', medidas_tomadas: '', observacoes_autor: '',
@@ -1133,8 +1340,10 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
         setFormData(initialFormData);
     }, [initialFormData]);
 
+    // ... (Funções de fetch de Resumo/Estatísticas - inalteradas) ...
     const fetchReportData = useCallback(async () => {
-        if (view !== 'resumo' || !user) return;
+        // ✅ ETAPA 2: Busca dados de resumo APENAS se a view 'resumo' for selecionada
+        if (view !== 'resumo' || !user) return; 
         setLoadingStats(true); setStatsError(null);
         if (!token) { setStatsError('Erro de autenticação.'); setLoadingStats(false); return; }
         try {
@@ -1146,9 +1355,10 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
             const data = await response.json();
             setStats(data);
         } catch (err) { setStatsError(`Falha ao carregar: ${err.message}`); setStats(null); } finally { setLoadingStats(false); }
-    }, [logout, view, user, token]);
+    }, [logout, view, user, token]); // Depende da 'view'
 
     const fetchTendenciasData = useCallback(async () => {
+         // ✅ ETAPA 2: Busca dados de tendências APENAS se a view 'resumo' for selecionada
         if (view !== 'resumo' || !token) return;
         setLoadingTendencias(true);
         try {
@@ -1186,14 +1396,17 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
         } finally {
             setLoadingTendencias(false);
         }
-    }, [token, logout, view]);
+    }, [token, logout, view]); // Depende da 'view'
     
     useEffect(() => {
+        // ✅ ETAPA 2: Busca dados de Resumo/Tendência APENAS se a view for 'resumo'
         if (view === 'resumo' && user) {
             fetchReportData();
             fetchTendenciasData();
         }
     }, [user, view, fetchReportData, fetchTendenciasData]);
+    // ... (Fim das Funções de fetch de Resumo/Estatísticas) ...
+
 
     const pieChartData = useMemo(() => {
         if (!stats || !stats.boletins) {
@@ -1226,7 +1439,8 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
         e.preventDefault();
         setIsSubmitting(true);
         if (!token) { toast.error('Erro: Token não encontrado.'); setIsSubmitting(false); return; }
-        const dataToSend = { ...formData };
+        // ✅ ETAPA 2: Garante que o status enviado seja 'Em Análise'
+        const dataToSend = { ...formData, status: 'Em Análise' };
         const toastId = toast.loading("Enviando relatório...");
 
         try {
@@ -1238,7 +1452,8 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || `Erro ${response.status}`);
             
-            toast.update(toastId, { render: 'Relatório enviado!', type: 'success', isLoading: false, autoClose: 2000, icon: <AnimatedCheckmark /> });
+            // ✅ ETAPA 2: Mensagem de sucesso atualizada
+            toast.update(toastId, { render: 'Relatório enviado para análise!', type: 'success', isLoading: false, autoClose: 3000, icon: <AnimatedCheckmark /> });
             setFormData(initialFormData);
         } catch (error) {
             toast.update(toastId, { render: `Erro: ${error.message}`, type: 'error', isLoading: false, autoClose: 4000, icon: <AnimatedXMark /> });
@@ -1247,7 +1462,7 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
     
     const renderInternalView = () => {
         switch(view) {
-            case 'resumo':
+            case 'resumo': // Mantido
                 if (loadingStats) return <p className="loading-text">Carregando estatísticas...</p>;
                 if (statsError) return <p className="error-message">{statsError}</p>;
                 if (!stats) return <p className="empty-state">Não foi possível carregar as estatísticas.</p>;
@@ -1383,6 +1598,7 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
                         <p className="content-subtitle">
                             Acesse relatórios detalhados e análises estratégicas para auxiliar na tomada de decisão.
                         </p>
+                        {/* ✅ ETAPA 2: Grid de Módulos atualizado */}
                         <div className="strategic-grid">
                             <StrategicReportCard
                                 title="Relatório de Criminalidade"
@@ -1396,6 +1612,28 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
                                 icon="fa-chart-line"
                                 onClick={() => setView('trends')}
                             />
+                            
+                            {/* Card Condicional para Chefes */}
+                            {podeAprovarRelatorio && (
+                                <StrategicReportCard
+                                    title="Gestão de Relatórios"
+                                    description="Revisar e aprovar relatórios pendentes."
+                                    icon="fa-file-signature"
+                                    onClick={() => setInternalView('gestao_relatorios')}
+                                />
+                            )}
+                            
+                            {/* Card para Todos (se não for chefe, ou se for chefe e quiser ver só os aprovados) */}
+                            {/* Lógica: Se não pode aprovar, mostra um link direto para os aprovados */}
+                            {!podeAprovarRelatorio && (
+                                <StrategicReportCard
+                                    title="Relatórios Aprovados"
+                                    description="Consultar o histórico de relatórios aprovados."
+                                    icon="fa-check-circle"
+                                    onClick={() => setInternalView('aprovados_public')} // Nova view name
+                                />
+                            )}
+                            
                             <StrategicReportCard
                                 title="Relatório de Eficiência Operacional"
                                 description="Tempo médio de resposta, taxa de solução de casos e performance."
@@ -1411,6 +1649,18 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
                         </div>
                     </div>
                 );
+            // ✅ ETAPA 2: Renderiza as novas views
+            case 'gestao_relatorios':
+                // Só renderiza se for chefe (o card de acesso já bloqueia, mas é uma segurança extra)
+                if (!podeAprovarRelatorio) {
+                    setInternalView('estrategico'); // Volta para inteligência
+                    return null;
+                }
+                return <GestaoRelatoriosView user={user} token={token} logout={logout} setView={setInternalView} />; // Passa setInternalView
+            
+            case 'aprovados_public': // Vista pública dos aprovados (para não-chefes)
+                return <RelatoriosAprovadosView user={user} token={token} logout={logout} setView={setInternalView} />;
+
             case 'registrar':
                 const TIPOS_OCORRENCIA = [ "Agressão", "Ameaça", "Desacato", "Desaparecimento", "Estelionato", "Extorsão", "Furto", "Homicídio", "Latrocínio", "Perturbação", "Posse/Porte Ilegal de Arma", "Roubo", "Sequestro", "Tráfico de Drogas", "Vandalismo", "Veículo Recuperado", "Violência Doméstica", "Outros" ];
                 return (
@@ -1435,11 +1685,17 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
                                             <label htmlFor="unidade_responsavel">Unidade Responsável</label>
                                             <input type="text" id="unidade_responsavel" name="unidade_responsavel" value={formData.unidade_responsavel} onChange={handleInputChange} disabled={isSubmitting} />
                                         </div>
+                                        {/* ✅ ETAPA 2: Status Padrão (removido dropdown) */}
                                         <div className="form-group">
                                             <label htmlFor="status">Status Inicial</label>
-                                            <select id="status" name="status" value={formData.status} onChange={handleInputChange} disabled={isSubmitting}>
-                                                <option value="Em Aberto">Em Aberto</option> <option value="Em Análise">Em Análise</option> <option value="Concluído">Concluído</option>
-                                            </select>
+                                            <input 
+                                                type="text" 
+                                                id="status" 
+                                                name="status" 
+                                                value="Em Análise (Aguardando Aprovação)" 
+                                                disabled={true} 
+                                                style={{backgroundColor: '#f1f5f9', cursor: 'not-allowed'}}
+                                            />
                                         </div>
                                     </div>
                                 </fieldset>
@@ -1529,7 +1785,9 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
                     </div>
                 );
             default:
-                return <div>View não encontrada</div>;
+                 // ✅ ETAPA 2: Se a view for desconhecida, volta para Inteligência
+                setInternalView('estrategico');
+                return null;
         }
     };
     
@@ -1537,6 +1795,7 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
         <div className="page-container reports-page" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)' }}>
             <header className="report-header" style={{ flexShrink: 0 }}>
                 <h1 className="page-title">Central de Relatórios</h1>
+                {/* ✅ ETAPA 2: Mantém a navegação original (como nas screenshots) */}
                 <nav className="report-nav">
                     <button className={`nav-button ${view === 'resumo' ? 'active' : ''}`} onClick={() => setInternalView('resumo')}>
                         <i className="fas fa-chart-pie"></i> Resumo
@@ -1544,6 +1803,7 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
                     <button className={`nav-button ${view === 'estrategico' ? 'active' : ''}`} onClick={() => setInternalView('estrategico')}>
                         <i className="fas fa-lightbulb"></i> Inteligência
                     </button>
+                    {/* Botões removidos daqui e movidos para 'Inteligência' */}
                     <button className={`nav-button ${view === 'registrar' ? 'active' : ''}`} onClick={() => setInternalView('registrar')}>
                         <i className="fas fa-edit"></i> Registrar
                     </button>
@@ -1719,6 +1979,7 @@ const PainelPoliciaSidebar = ({ currentView, setView, onReportBugClick, user, lo
 
     const NavButton = ({ viewName, icon, text }) => {
         let isActive = currentView === viewName;
+        // ✅ ETAPA 2: Faz o botão "Relatórios" ficar ativo nas sub-páginas
         if (viewName === 'relatorios' && (currentView === 'heatmap' || currentView === 'trends')) {
             isActive = true;
         }
@@ -1745,7 +2006,8 @@ const PainelPoliciaSidebar = ({ currentView, setView, onReportBugClick, user, lo
                 <NavButton viewName="dashboard" icon="fa-tachometer-alt" text="Dashboard" />
                 <NavButton viewName="boletins" icon="fa-file-alt" text="Boletins" />
                 <NavButton viewName="policiais" icon="fa-users" text="Policiais" />
-                <NavButton viewName="relatorios" icon="fa-chart-pie" text="Relatórios" />
+                {/* ✅ ETAPA 2: Ícone mudado para 'fa-lightbulb' (Inteligência) */}
+                <NavButton viewName="relatorios" icon="fa-lightbulb" text="Relatórios" />
                 
                 {user?.permissoes?.is_rh && (
                     <NavButton viewName="admin" icon="fa-user-shield" text="Administração" />
@@ -1756,7 +2018,12 @@ const PainelPoliciaSidebar = ({ currentView, setView, onReportBugClick, user, lo
                 {user && (
                     <button onClick={() => setView('profile', { policialId: user.id })} className="sidebar-profile-vertical">
                         <div className="profile-avatar-large">
-                            <span>{userInitial}</span>
+                            {/* ✅ Adiciona foto do perfil se existir */}
+                            {user.foto_url ? (
+                                <img src={user.foto_url.startsWith('http') ? user.foto_url : user.foto_url} alt="Perfil" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                            ) : (
+                                <span>{userInitial}</span>
+                            )}
                         </div>
                         <div className="profile-info-vertical">
                             <span>{user.nome_completo || 'Usuário'}</span>
