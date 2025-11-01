@@ -1819,228 +1819,421 @@ const RelatoriosView = ({ user, token, logout, setView }) => {
 
 // --- [INÍCIO] COMPONENTE PRINCIPAL (PAINEL POLICIA) ---
 const PainelPolicia = () => {
-    const { user, token, logout } = useAuth();
-    const navigate = useNavigate();
-    const location = useLocation();
-    
-    const [currentView, setCurrentView] = useState('loading');
-    const [navProps, setNavProps] = useState({});
-    const [isBugModalOpen, setIsBugModalOpen] = useState(false);
-    
+    const { user, token, logout } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+    
+    const [currentView, setCurrentView] = useState('loading');
+    const [navProps, setNavProps] = useState({});
+    const [isBugModalOpen, setIsBugModalOpen] = useState(false);
+    
+    // --- LÓGICA DA SIDEBAR (NOVO) ---
+    // Controla se a tela é considerada "desktop" (onde o hover se aplica)
+    const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+    // Controla se o mouse está sobre a sidebar (só no desktop)
+    const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+    // Controla se o menu está aberto no mobile (clique no hamburger)
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // Adiciona um listener para saber se estamos em modo desktop ou mobile
     useEffect(() => {
-        const path = location.pathname;
-        
-        if (path === '/policia/dashboard' || path === '/policia' || path === '/policia/') {
-            setCurrentView('dashboard');
-        } else if (path === '/policia/boletins') {
-            setCurrentView('boletins');
-        } else if (path.startsWith('/policia/boletim/')) {
-            const id = path.split('/')[3];
-            setCurrentView('boletimDetail');
-            setNavProps({ boletimId: id, startInEditMode: location.state?.startInEditMode || false });
-        } else if (path === '/policia/policiais') {
-            setCurrentView('policiais');
-        } else if (path.startsWith('/policia/perfil/')) {
-            const id = path.split('/')[3] || (user ? user.id : null);
-            if(id) { 
-                setCurrentView('profile');
-                setNavProps({ policialId: id });
-            } else {
-                setCurrentView('dashboard');
-                if (location.pathname !== '/policia/dashboard') { 
-                    navigate('/policia/dashboard', { replace: true });
-                }
+        const handleResize = () => {
+            const desktop = window.innerWidth >= 768;
+            setIsDesktop(desktop);
+            if (desktop) {
+                setIsMobileMenuOpen(false); // Fecha o menu mobile se a tela ficar grande
             }
-        } else if (path === '/policia/relatorios') {
-            setCurrentView('relatorios');
-        } else if (path === '/policia/admin') {
-            setCurrentView('admin');
-        } else if (path === '/policia/logs') {
-            setCurrentView('logs');
-        }
-        else if (path === '/policia/relatorios/criminalidade') {
-            setCurrentView('heatmap');
-        } else if (path === '/policia/relatorios/tendencias') {
-            setCurrentView('trends');
-        }
-        else {
-            setCurrentView('dashboard');
-            if (location.pathname !== '/policia/dashboard') {
-                navigate('/policia/dashboard', { replace: true });
-            }
-        }
-    }, [location.pathname, user, navigate]);
+        };
+        window.addEventListener('resize', handleResize);
+        // Define o estado inicial correto
+        handleResize();
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
-    const setView = useCallback((view, props = {}) => {
-        let newPath = '/policia/dashboard';
-        if (view === 'boletimDetail') {
-            newPath = `/policia/boletim/${props.boletimId}`;
-        } else if (view === 'profile') {
-            newPath = `/policia/perfil/${props.policialId}`;
-        } else if (view === 'heatmap') {
-            newPath = '/policia/relatorios/criminalidade';
-        } else if (view === 'trends') {
-            newPath = '/policia/relatorios/tendencias';
-        } else if (view !== 'dashboard') {
-            newPath = `/policia/${view}`;
+    // A sidebar está "recolhida" (collapsed) SE for desktop E o mouse não estiver em cima
+    const isCollapsed = isDesktop && !isSidebarExpanded;
+    // --- FIM DA LÓGICA DA SIDEBAR ---
+
+    useEffect(() => {
+        const path = location.pathname;
+        
+        if (path === '/policia/dashboard' || path === '/policia' || path === '/policia/') {
+            setCurrentView('dashboard');
+        } else if (path === '/policia/boletins') {
+            setCurrentView('boletins');
+        } else if (path.startsWith('/policia/boletim/')) {
+            const id = path.split('/')[3];
+            setCurrentView('boletimDetail');
+            setNavProps({ boletimId: id, startInEditMode: location.state?.startInEditMode || false });
+        } else if (path === '/policia/policiais') {
+            setCurrentView('policiais');
+        } else if (path.startsWith('/policia/perfil/')) {
+            const id = path.split('/')[3] || (user ? user.id : null);
+            if(id) { 
+                setCurrentView('profile');
+                setNavProps({ policialId: id });
+            } else {
+                setCurrentView('dashboard');
+                if (location.pathname !== '/policia/dashboard') { 
+                    navigate('/policia/dashboard', { replace: true });
+                }
+            }
+        } else if (path === '/policia/relatorios') {
+            setCurrentView('relatorios');
+        } else if (path === '/policia/admin') {
+            setCurrentView('admin');
+        } else if (path === '/policia/logs') {
+            setCurrentView('logs');
+        }
+        else if (path === '/policia/relatorios/criminalidade') {
+            setCurrentView('heatmap');
+        } else if (path === '/policia/relatorios/tendencias') {
+            setCurrentView('trends');
+        }
+        else {
+            setCurrentView('dashboard');
+            if (location.pathname !== '/policia/dashboard') {
+                navigate('/policia/dashboard', { replace: true });
+            }
+        }
+    }, [location.pathname, user, navigate]);
+
+    const setView = useCallback((view, props = {}) => {
+        // Fecha o menu mobile ao navegar
+        if (!isDesktop) {
+            setIsMobileMenuOpen(false);
         }
+        let newPath = '/policia/dashboard';
+        if (view === 'boletimDetail') {
+            newPath = `/policia/boletim/${props.boletimId}`;
+        } else if (view === 'profile') {
+            newPath = `/policia/perfil/${props.policialId}`;
+        } else if (view === 'heatmap') {
+            newPath = '/policia/relatorios/criminalidade';
+        } else if (view === 'trends') {
+            newPath = '/policia/relatorios/tendencias';
+        } else if (view !== 'dashboard') {
+            newPath = `/policia/${view}`;
+        }
 
-        if (location.pathname === newPath) {
-             setCurrentView(view);
-             setNavProps(props);
-        } else {
-            navigate(newPath, { state: props });
-        }
-    }, [navigate, location.pathname]);
+        if (location.pathname === newPath) {
+             setCurrentView(view);
+             setNavProps(props);
+        } else {
+            navigate(newPath, { state: props });
+        }
+    }, [navigate, location.pathname, isDesktop]);
 
-    const renderView = () => {
-        if (user?.permissoes?.is_rh && (currentView === 'admin' || currentView === 'logs')) {
-             return (
-                <PainelRH
-                    user={user}
-                    token={token}
-                    logout={logout}
-                    currentView={currentView}
-                    setView={setView} 
-                    navProps={navProps}
-                />
-            );
-        }
+    const renderView = () => {
+        if (user?.permissoes?.is_rh && (currentView === 'admin' || currentView === 'logs')) {
+             return (
+                <PainelRH
+                    user={user}
+                    token={token}
+                    logout={logout}
+                    currentView={currentView}
+                    setView={setView} 
+                    navProps={navProps}
+                />
+            );
+        }
 
-        switch (currentView) {
-            case 'dashboard':
-                return <DashboardView user={user} token={token} logout={logout} setView={setView} />;
-            case 'boletins':
-                return <ConsultaBoletinsView user={user} token={token} logout={logout} setView={setView} />;
-            case 'boletimDetail':
-                return <BoletimDetailView user={user} token={token} logout={logout} setView={setView} navProps={navProps} />;
-            case 'policiais':
-                return <ListaPoliciaisView user={user} token={token} logout={logout} setView={setView} />;
-            case 'profile':
-                return <ProfileView user={user} token={token} logout={logout} setView={setView} navProps={navProps} />;
-            case 'relatorios':
-                return <RelatoriosView user={user} token={token} logout={logout} setView={setView} />;
-            case 'heatmap':
-                return <HeatmapPage />;
-            case 'trends':
-                return <AnaliseTendenciasPage />;
-            default:
-                return <DashboardView user={user} token={token} logout={logout} setView={setView} />;
-        }
-    };
+        switch (currentView) {
+            case 'dashboard':
+                return <DashboardView user={user} token={token} logout={logout} setView={setView} />;
+            case 'boletins':
+                return <ConsultaBoletinsView user={user} token={token} logout={logout} setView={setView} />;
+            case 'boletimDetail':
+                return <BoletimDetailView user={user} token={token} logout={logout} setView={setView} navProps={navProps} />;
+contentFetchId: 'uploaded:ultrasonixo/portalpolciail/Portalpolciail-f5e54cc3e90f56c48e45329173427d9c1c2553d6/src/components/BoletimDetailPage.css'
+            case 'policiais':
+                return <ListaPoliciaisView user={user} token={token} logout={logout} setView={setView} />;
+            case 'profile':
+                return <ProfileView user={user} token={token} logout={logout} setView={setView} navProps={navProps} />;
+            case 'relatorios':
+                return <RelatoriosView user={user} token={token} logout={logout} setView={setView} />;
+            case 'heatmap':
+                return <HeatmapPage />;
+            case 'trends':
+                return <AnaliseTendenciasPage />;
+            default:
+                return <DashboardView user={user} token={token} logout={logout} setView={setView} />;
+        }
+    };
 
-    if (currentView === 'loading') {
-        return (
-            <div className="police-dashboard-container">
-                <PainelPoliciaSidebar 
-                    currentView={currentView} 
-                    setView={() => {}} 
-                    onReportBugClick={() => setIsBugModalOpen(true)} 
-                    user={user} 
-                    logout={logout} 
-                />
-                <main className="main-content">
-                    <div className="page-container">
-                        <p style={{textAlign: 'center', fontSize: '1.2rem', color: '#64748b'}}>Carregando...</p>
-                    </div>
-                </main>
-            </div>
-        );
-    }
+    // Define se a sidebar deve ser renderizada (ela não aparece no heatmap/trends)
+    const shouldRenderSidebar = currentView !== 'heatmap' && currentView !== 'trends';
+    
+    // --- RETURN (MODIFICADO) ---
 
-    return (
-        <>
-            <div className="police-dashboard-container">
-                <PainelPoliciaSidebar 
-                    currentView={currentView} 
-                    setView={setView} 
-                    onReportBugClick={() => setIsBugModalOpen(true)} 
-                    user={user} 
-                    logout={logout} 
-                />
-                <main className="main-content">
-                    {renderView()}
-                </main>
-            </div>
-            
-            <ReportBugModal 
-                isOpen={isBugModalOpen}
-                onClose={() => setIsBugModalOpen(false)}
-                token={token} 
-                logout={logout}
-            />
-        </>
-    );
+    if (currentView === 'loading') {
+        return (
+            <div className="police-dashboard-container">
+                <PoliceDashboardSidebar 
+                    currentView={currentView} 
+                    setView={() => {}} 
+                    onReportBugClick={() => setIsBugModalOpen(true)} 
+                    user={user} 
+                    logout={logout} 
+                    // Props de estado
+                    isCollapsed={isDesktop} // Inicia recolhida no desktop
+                    isMobileMenuOpen={false}
+                    closeMobileMenu={() => {}}
+                    onMouseEnter={() => {}}
+                    onMouseLeave={() => {}}
+                />
+                <main className={`main-content ${isDesktop ? 'collapsed' : ''}`}>
+                    <div className="page-container">
+                        <p style={{textAlign: 'center', fontSize: '1.2rem', color: '#64748b'}}>Carregando...</p>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    return (
+        <>
+            {/* Botão Hamburger (SÓ APARECE EM MOBILE) */}
+            {shouldRenderSidebar && !isDesktop && (
+                <div className="p-4 md:hidden flex justify-end sticky top-0 bg-slate-100/80 backdrop-blur-sm z-[5] border-b border-slate-200">
+                    <button
+                        className="p-2 rounded-md text-slate-600 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        onClick={() => setIsMobileMenuOpen(true)}
+                        aria-label="Abrir menu"
+                    >
+                        <i className="fas fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            )}
+
+            <div className="police-dashboard-container">
+                {/* Renderiza a sidebar se a view permitir */}
+                {shouldRenderSidebar && (
+                    <PoliceDashboardSidebar 
+                        currentView={currentView} 
+                        setView={setView} 
+                        onReportBugClick={() => setIsBugModalOpen(true)} 
+                        user={user} 
+                        logout={logout}
+                        // Props da nova lógica
+                        isCollapsed={isCollapsed}
+                        isMobileMenuOpen={isMobileMenuOpen}
+                        closeMobileMenu={() => setIsMobileMenuOpen(false)}
+                        onMouseEnter={() => { if (isDesktop) setIsSidebarExpanded(true); }}
+                        onMouseLeave={() => { if (isDesktop) setIsSidebarExpanded(false); }}
+                    />
+                )}
+                
+                {/* O main-content agora usa a classe 'collapsed' dinamicamente */}
+                {/* A classe 'md:!ml-0' remove a margem em páginas como heatmap/trends */}
+                <main className={`main-content ${isCollapsed && shouldRenderSidebar ? 'collapsed' : ''} ${!shouldRenderSidebar ? 'md:!ml-0' : ''}`}>
+                    {renderView()}
+                </main>
+            </div>
+            
+            <ReportBugModal 
+                isOpen={isBugModalOpen}
+                onClose={() => setIsBugModalOpen(false)}
+                token={token} 
+                logout={logout}
+            />
+        </>
+    );
 };
 
 // --- [INÍCIO] COMPONENTE SIDEBAR (INTERNALIZADO) ---
-const PainelPoliciaSidebar = ({ currentView, setView, onReportBugClick, user, logout }) => {
+const PoliceDashboardSidebar = ({ 
+    currentView, setView, onReportBugClick, user, logout,
+    isCollapsed, isMobileMenuOpen, closeMobileMenu, onMouseEnter, onMouseLeave 
+}) => {
+    
     const userInitial = user?.nome_completo ? user.nome_completo[0].toUpperCase() : '?';
 
+    // Componente de botão interno
     const NavButton = ({ viewName, icon, text }) => {
         let isActive = currentView === viewName;
-        // ✅ ETAPA 2: Faz o botão "Relatórios" ficar ativo nas sub-páginas
+        // Lógica para 'Inteligência' (antigo Relatórios)
         if (viewName === 'relatorios' && (currentView === 'heatmap' || currentView === 'trends')) {
             isActive = true;
         }
 
+        // Adiciona Tailwind classes para o estilo escuro
+        const baseClasses = "flex items-center w-full px-4 py-3 text-sm font-medium rounded-xl transition-colors duration-200";
+        const activeClasses = "bg-blue-600 text-white shadow-lg shadow-blue-600/50";
+        const inactiveClasses = "text-gray-400 hover:bg-gray-700 hover:text-white";
+        
+        // Ajusta padding/justificativa quando recolhido
+        const layoutClasses = isCollapsed ? "justify-center px-0" : "px-4";
+
         return (
             <button 
-                onClick={() => setView(viewName)} 
-                className={`sidebar-nav-button ${isActive ? 'active' : ''}`}
+                onClick={() => { setView(viewName); closeMobileMenu(); }} 
+                className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses} ${layoutClasses}`}
+                title={isCollapsed ? text : undefined} // Tooltip quando recolhido
             >
-                <i className={`fas ${icon}`}></i> 
-                <span>{text}</span>
+                {/* Ícone (Tailwind) */}
+                <i className={`fas ${icon} w-5 text-center ${isCollapsed ? 'm-0' : 'mr-3'} ${isActive ? 'text-white' : 'text-gray-400'} transition-all`}></i> 
+                
+                {/* Animação de fade/scale para o texto (só mostra se não estiver recolhido) */}
+                <AnimatePresence>
+                    {!isCollapsed && (
+                        <motion.span
+                            initial={{ opacity: 0, width: 0 }}
+                            animate={{ opacity: 1, width: 'auto', transition: { delay: 0.1, duration: 0.2 } }}
+                            exit={{ opacity: 0, width: 0, transition: { duration: 0.1 } }}
+                            className="ml-0 whitespace-nowrap" // ml-0 pois o ícone já tem mr-3
+                        >
+                            {text}
+                        </motion.span>
+                    )}
+                </AnimatePresence>
             </button>
         );
     };
 
     return (
-        <aside className="sidebar">
-            <div className="sidebar-header">
-                <h3>SSP-RP</h3>
-                <span>Painel de Controle</span>
-            </div>
-
-            <nav className="sidebar-nav">
-                <NavButton viewName="dashboard" icon="fa-tachometer-alt" text="Dashboard" />
-                <NavButton viewName="boletins" icon="fa-file-alt" text="Boletins" />
-                <NavButton viewName="policiais" icon="fa-users" text="Policiais" />
-                {/* ✅ ETAPA 2: Ícone mudado para 'fa-lightbulb' (Inteligência) */}
-                <NavButton viewName="relatorios" icon="fa-lightbulb" text="Relatórios" />
-                
-                {user?.permissoes?.is_rh && (
-                    <NavButton viewName="admin" icon="fa-user-shield" text="Administração" />
+        <>
+            {/* Overlay Mobile (para fechar ao clicar fora) */}
+            <AnimatePresence>
+                {isMobileMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 z-10 md:hidden"
+                        onClick={closeMobileMenu}
+                        aria-hidden="true"
+                    ></motion.div>
                 )}
-            </nav>
+            </AnimatePresence>
+            
+            {/* Sidebar */}
+            <aside 
+                // Classes de layout e estado (bg-gray-900 para o tema escuro)
+                className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''} bg-gray-900 text-gray-200 shadow-2xl z-20`}
+                onMouseEnter={onMouseEnter} // Expande ao passar o mouse (desktop)
+                onMouseLeave={onMouseLeave} // Recolhe ao sair (desktop)
+            >
+                {/* Cabeçalho / Logo */}
+                <div className="sidebar-header p-6 text-center border-b border-gray-700">
+                    {/* H-10 (altura fixa) previne "pulo" do layout quando o texto some */}
+                    <div className="flex items-center justify-center gap-3 h-10"> 
+                        <i className="fas fa-arrow-up rotate-45 text-3xl text-blue-500"></i>
+                        <AnimatePresence>
+                        {!isCollapsed && (
+                            <motion.h3 
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0, transition: { delay: 0.1 } }}
+                                exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
+                                className="text-2xl font-semibold text-white whitespace-nowrap"
+                            >
+                                Vertex
+                            </motion.h3>
+                        )}
+                        </AnimatePresence>
+                    </div>
+                    <AnimatePresence>
+                    {!isCollapsed && (
+                        <motion.span 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1, transition: { delay: 0.2 } }}
+                            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                            className="text-xs text-gray-500 block mt-1 whitespace-nowrap"
+                        >
+                            SSP-RP Console
+                        </motion.span>
+                    )}
+                    </AnimatePresence>
+                </div>
 
-            <div className="sidebar-footer">
-                {user && (
-                    <button onClick={() => setView('profile', { policialId: user.id })} className="sidebar-profile-vertical">
-                        <div className="profile-avatar-large">
-                            {/* ✅ Adiciona foto do perfil se existir */}
-                            {user.foto_url ? (
-                                <img src={user.foto_url.startsWith('http') ? user.foto_url : user.foto_url} alt="Perfil" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
-                            ) : (
-                                <span>{userInitial}</span>
+                {/* Navegação Principal */}
+                <nav className="sidebar-nav flex flex-col flex-grow p-4 space-y-2 overflow-y-auto">
+                    <NavButton viewName="dashboard" icon="fa-th-large" text="Dashboard" />
+                    <NavButton viewName="boletins" icon="fa-file-alt" text="Boletins" />
+                    <NavButton viewName="policiais" icon="fa-users" text="Corpo Policial" />
+                    {/* Ícone de "Relatórios" atualizado para "Inteligência" */}
+                    <NavButton viewName="relatorios" icon="fa-lightbulb" text="Inteligência" /> 
+                    
+                    {user?.permissoes?.is_rh && (
+                        <NavButton viewName="admin" icon="fa-user-shield" text="Administração RH" />
+                    )}
+                </nav>
+
+                {/* Rodapé / Perfil */}
+                <div className="sidebar-footer p-4 border-t border-gray-700 mt-auto flex-shrink-0">
+                    {user && (
+                        <button 
+                            onClick={() => { setView('profile', { policialId: user.id }); closeMobileMenu(); }} 
+                            // Centraliza o ícone quando recolhido
+                            className={`sidebar-profile-vertical flex items-center w-full p-2 rounded-xl hover:bg-gray-700 mb-4 transition-colors ${isCollapsed ? 'justify-center' : ''}`}
+                            title={isCollapsed ? (user.nome_completo || 'Ver Perfil') : undefined}
+                        >
+                            <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-lg flex-shrink-0 overflow-hidden">
+                                {user.foto_url ? (
+                                    <img src={user.foto_url.startsWith('http') ? user.foto_url : user.foto_url} alt="Perfil" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span>{userInitial}</span>
+                                )}
+                            </div>
+                            <AnimatePresence>
+                            {!isCollapsed && (
+                                <motion.div 
+                                    initial={{ opacity: 0, width: 0 }}
+                                    animate={{ opacity: 1, width: 'auto', transition: { delay: 0.1 } }}
+                                    exit={{ opacity: 0, width: 0, transition: { duration: 0.1 } }}
+                                    // Ajuste de margem (ml-3)
+                                    className="profile-info-vertical text-left overflow-hidden ml-3" 
+                                >
+                                    <span className="block font-semibold text-sm text-white truncate whitespace-nowrap">{user.nome_completo || 'Usuário'}</span>
+                                    <small className="block text-xs text-gray-500 whitespace-nowrap">{user.patente || user.corporacao || 'Ver Perfil'}</small>
+                                </motion.div>
                             )}
-                        </div>
-                        <div className="profile-info-vertical">
-                            <span>{user.nome_completo || 'Usuário'}</span>
-                            <small>Ver Perfil</small>
-                        </div>
+                            </AnimatePresence>
+                        </button>
+                    )}
+                    
+                    {/* Botões de Ação */}
+                    <button 
+                        onClick={() => { onReportBugClick(); closeMobileMenu(); }} 
+                        className={`sidebar-btn bug-report-button w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-yellow-600/80 text-white hover:bg-yellow-700/90 mb-2 transition-colors`}
+                        title={isCollapsed ? 'Reportar Bug' : undefined}
+                    >
+                        <i className="fas fa-bug"></i> 
+                        <AnimatePresence>
+                        {!isCollapsed && (
+                            <motion.span
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1, transition: { delay: 0.1 } }}
+                                exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                                className="whitespace-nowrap"
+                            >
+                                Reportar Bug
+                            </motion.span>
+                        )}
+                        </AnimatePresence>
                     </button>
-                )}
-                <button onClick={onReportBugClick} className="sidebar-btn bug-report-button">
-                    <i className="fas fa-bug"></i> 
-                    <span>Reportar Bug</span>
-                </button>
-                <button onClick={logout} className="sidebar-btn logout-button">
-                    <i className="fas fa-sign-out-alt"></i> 
-                    <span>Sair</span>
-                </button>
-            </div>
-        </aside>
+                    <button 
+                        onClick={() => { logout(); closeMobileMenu(); }} 
+                        className={`sidebar-btn logout-button w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-red-600/80 text-white hover:bg-red-700/90 transition-colors`}
+                        title={isCollapsed ? 'Sair' : undefined}
+                    >
+                        <i className="fas fa-sign-out-alt"></i> 
+                        <AnimatePresence>
+                        {!isCollapsed && (
+                            <motion.span
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1, transition: { delay: 0.1 } }}
+                                exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                                className="whitespace-nowrap"
+                            >
+                                Sair
+                            </motion.span>
+                        )}
+                        </AnimatePresence>
+                    </button>
+                </div>
+            </aside>
+        </>
     );
 };
 
